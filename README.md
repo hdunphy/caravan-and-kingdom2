@@ -2,6 +2,7 @@
 
 Physicalized strategy simulation (GDD v4.0 prototype). AI factions manage themselves via a Parallel Governor architecture; you observe, inspect, and control time.
 
+
 ## Run it
 
 The project is TypeScript, bundled/served by [Vite](https://vite.dev). Install deps once, then start the dev server:
