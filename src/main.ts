@@ -315,6 +315,7 @@ for (const key of policyInputs) {
         const p = world.factions[world.playerFactionId].policy!;
         if (key === 'recruit') p.recruitment = parseFloat(el.value);
         else if (key === 'trade') p.tradeStance = parseFloat(el.value);
+        else if (key === 'tax') p.taxRate = parseFloat(el.value);
         else (p as any)[key] = parseFloat(el.value);
         updateHud(world, selected); // Sync descriptions immediately
       }
