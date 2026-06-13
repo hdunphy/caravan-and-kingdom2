@@ -46,7 +46,7 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
     history: { interval: 25, samples: [] },
     diplo: { relations: {}, tradeCounts: {}, wars: [], truces: {} },
     stats: { trades: {}, captures: {} },
-    playerFactionId: 0,
+    playerFactionId: null,
     pathCache: new Map(),
   };
 

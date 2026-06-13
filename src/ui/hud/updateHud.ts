@@ -51,6 +51,7 @@ export function updateHud(world: World, selected: any) {
         if (a.type === 'BANKRUPT') { color = '#f1c40f'; icon = '💸'; }
         if (a.type === 'SIEGE') { color = '#e74c3c'; icon = '⚔'; }
         if (a.type === 'STAGNANT') { color = '#9b59b6'; icon = '🛑'; }
+        if (a.type === 'DIPLO') { color = '#3498db'; icon = '📜'; }
         return `
           <div class="alert-item" data-type="${a.type}" data-target="${a.targetId}" style="pointer-events: auto; cursor: pointer; background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px; position: relative;">
             <button class="dismiss-alert-btn" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: #8fa3bd; cursor: pointer; font-size: 10px; padding: 2px 4px;">✖</button>
@@ -140,9 +141,23 @@ export function updateHud(world: World, selected: any) {
       for (let b = a + 1; b < world.factions.length; b++) {
         if (world.factions[a].eliminated || world.factions[b].eliminated) continue;
         const st = stateOf(world, a, b);
+        let actionBtn = '';
+        if (world.playerFactionId != null && (a === world.playerFactionId || b === world.playerFactionId)) {
+          const enemy = a === world.playerFactionId ? b : a;
+          const myStr = strengthOf(world, world.playerFactionId);
+          const enStr = strengthOf(world, enemy);
+          const strComp = `<span style="font-size:9px; color:#cbd5e1; margin-right:4px;">Str: ${Math.round(myStr)} v ${Math.round(enStr)}</span>`;
+          if (st !== 'WAR') {
+            actionBtn = `${strComp}<button class="declare-war-btn" data-target="${enemy}" style="font-size: 8px; padding: 2px 4px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">Declare War</button>`;
+          }
+        }
         diploRows += `<div style="color:${(colors as Record<string, string>)[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">
           <span>${(icons as Record<string, string>)[st]} <b>${world.factions[a].name}</b>–<b>${world.factions[b].name}</b></span>
-          <span class="logtick">${st.toLowerCase()} ${Math.round(getRelation(world, a, b))}</span></div>`;
+          <div style="display:flex; align-items:center;">
+             ${actionBtn}
+             <span class="logtick" style="margin-left: 4px;">${st.toLowerCase()} ${Math.round(getRelation(world, a, b))}</span>
+          </div>
+        </div>`;
       }
     }
 
@@ -154,7 +169,7 @@ export function updateHud(world: World, selected: any) {
         const exhA = Math.round(w.exh[w.a]);
         const exhB = Math.round(w.exh[w.b]);
         const duration = world.tick - w.since;
-        const isPlayerWar = world.playerFactionId === w.a || world.playerFactionId === w.b;
+        const isPlayerWar = world.playerFactionId != null && (world.playerFactionId === w.a || world.playerFactionId === w.b);
         
         let peaceBtn = '';
         if (isPlayerWar) {
@@ -180,7 +195,7 @@ export function updateHud(world: World, selected: any) {
   drawChart(world);
 
   // Sync Policy Sliders
-  if (world.playerFactionId !== undefined && world.factions[world.playerFactionId]) {
+  if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
     const p = world.factions[world.playerFactionId].policy!;
     const updateSlider = (id: string, val: number) => {
       const el = document.getElementById(`policy-${id}`) as HTMLInputElement;

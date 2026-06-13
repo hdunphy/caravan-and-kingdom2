@@ -82,7 +82,9 @@ export function maintenanceSystem(world: World) {
     if (s.gold >= bill) {
       s.gold -= bill;
     } else {
-      pushAlert(world, { type: 'BANKRUPT', tick: world.tick, targetId: s.id, msg: `${s.name} treasury is empty! Workers are deserting.` });
+      if (s.factionId === world.playerFactionId) {
+        pushAlert(world, { type: 'BANKRUPT', tick: world.tick, targetId: s.id, msg: `${s.name} treasury is empty! Workers are deserting.` });
+      }
       s.gold = 0;
       let villagersLeft = staff.filter(a => a.type === 'villager').length;
       for (const a of staff) {

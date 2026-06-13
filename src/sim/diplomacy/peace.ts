@@ -1,7 +1,7 @@
 // ---------- Peace ----------
 import { key, distance } from '../../core/hex.js';
 import { DIPLO, ECON } from '../../core/constants.js';
-import { log } from '../settlement.js';
+import { log, pushAlert } from '../settlement.js';
 import { homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
@@ -44,6 +44,7 @@ export function makePeace(world: World, war: War, loser: number) {
       d.relations[pk] = 40;
 
       log(world, `!!! SOVEREIGNTY LOSS !!! ${vassalFac.name} has surrendered their sovereignty and became a vassal of ${world.factions[winner].name}!`);
+      pushAlert(world, { type: 'DIPLO', tick: world.tick, targetId: losers[0]?.id, msg: `${vassalFac.name} became a vassal of ${world.factions[winner].name}!` });
     } else {
       if (war.exh[loser] >= DIPLO.SUE_THRESHOLD && war.exh[winner] <= DIPLO.DOMINANT_EXH && losers.length > 1) {
         let bestS = null;
@@ -64,6 +65,7 @@ export function makePeace(world: World, war: War, loser: number) {
           bestS.siegePop0 = null;
           bestS.siegeDeaths = 0;
           log(world, `!!! CESSION !!! ${world.factions[loser].name} ceded ${bestS.name} to ${world.factions[winner].name} in the peace of ${world.tick}!`);
+          pushAlert(world, { type: 'DIPLO', tick: world.tick, targetId: bestS.id, msg: `${world.factions[loser].name} ceded ${bestS.name} to ${world.factions[winner].name}!` });
         }
       }
 
@@ -75,9 +77,12 @@ export function makePeace(world: World, war: War, loser: number) {
       }
       for (const s of winners) s.gold += total / Math.max(1, winners.length);
       log(world, `${world.factions[loser].name} sued for peace with ${world.factions[winner].name} (${Math.round(total)}g reparations)`);
+      pushAlert(world, { type: 'DIPLO', tick: world.tick, targetId: losers[0]?.id, msg: `${world.factions[loser].name} made peace with ${world.factions[winner].name}.` });
     }
   } else {
     log(world, `${world.factions[war.a].name} and ${world.factions[war.b].name} agreed to a white peace`);
+    const s = world.settlements.find(s => s.factionId === war.a);
+    pushAlert(world, { type: 'DIPLO', tick: world.tick, targetId: s?.id, msg: `${world.factions[war.a].name} and ${world.factions[war.b].name} signed a white peace.` });
   }
   d.wars = d.wars.filter(w => w !== war);
   const pk = pairKey(war.a, war.b);
@@ -107,5 +112,16 @@ export function makePeace(world: World, war: War, loser: number) {
 }
 
 export function sueForPeace(world: World, war: War, factionId: number) {
-  makePeace(world, war, factionId);
+  const enemyId = factionId === war.a ? war.b : war.a;
+  const myExh = war.exh[factionId];
+  const enemyExh = war.exh[enemyId];
+  
+  // The side with higher exhaustion is considered the loser in the peace treaty.
+  // If tied or close, the suer takes the slight disadvantage by being the loser,
+  // but if the suer is clearly winning (lower exhaustion), the enemy pays reparations/cedes.
+  let loser = factionId;
+  if (myExh < enemyExh) {
+    loser = enemyId;
+  }
+  makePeace(world, war, loser);
 }

@@ -6,7 +6,8 @@ import { render, HEX_SIZE } from './ui/renderer.js';
 import { updateHud, dismissedAlertKeys } from './ui/hud.js';
 import { pixelToHex, hexToPixel, key } from './core/hex.js';
 import { saveWorld, loadWorld } from './sim/serialize.js';
-import { makePeace } from './sim/diplomacy.js';
+import { sueForPeace } from './sim/diplomacy/peace.js';
+import { playerDeclareWar } from './sim/diplomacy/war.js';
 import type { World } from './types.js';
 
 const canvas = document.getElementById('map') as HTMLCanvasElement;
@@ -25,11 +26,13 @@ let world = generateWorld(seed, 24, 4);
 
 // Auto-offer autosave on boot
 const autosave = localStorage.getItem('cnk_autosave');
+let loadedAutosave = false;
 if (autosave) {
   if (confirm('An autosave was found. Load it?')) {
     try {
       world = loadWorld(autosave);
       console.log('Autosave loaded.');
+      loadedAutosave = true;
     } catch (e) {
       console.error('Failed to load autosave:', e);
     }
@@ -108,7 +111,92 @@ document.getElementById('reseed')!.addEventListener('click', () => {
   world = generateWorld(Math.floor(Math.random() * 1e9), 24, 4);
   applyPlaystyle(world);
   selected = null;
+  gameOverTriggered = false;
+  showFactionPicker();
 });
+
+function showFactionPicker() {
+  speed = 0;
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-speed="0"]')?.classList.add('active');
+  const modal = document.getElementById('faction-picker-modal')!;
+  const list = document.getElementById('faction-picker-list')!;
+  list.innerHTML = '';
+  
+  for (const fac of world.factions) {
+    if (fac.eliminated) continue;
+    const btn = document.createElement('button');
+    btn.style.display = 'flex';
+    btn.style.alignItems = 'center';
+    btn.style.gap = '8px';
+    btn.innerHTML = `<span class="swatch" style="background:${fac.color};"></span> <span style="font-weight:600;">${fac.name}</span> <span style="margin-left:auto; font-size:10px; color:#8fa3bd;">${fac.persona}</span>`;
+    btn.onclick = () => {
+      world.playerFactionId = fac.id;
+      modal.style.display = 'none';
+      speed = 1;
+      document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-speed="1"]')?.classList.add('active');
+      updateHud(world, selected);
+    };
+    list.appendChild(btn);
+  }
+  
+  document.getElementById('observe-btn')!.onclick = () => {
+    world.playerFactionId = null;
+    modal.style.display = 'none';
+    speed = 1;
+    document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-speed="1"]')?.classList.add('active');
+    updateHud(world, selected);
+  };
+  
+  modal.style.display = 'flex';
+}
+
+let gameOverTriggered = false;
+function checkWinLoss(w: World) {
+  if (w.playerFactionId == null || gameOverTriggered) return;
+  const mySettlements = w.settlements.filter(s => s.factionId === w.playerFactionId);
+  const isEliminated = mySettlements.length === 0 && w.tick > 10;
+  
+  const totalPop = w.settlements.reduce((sum, s) => sum + s.population, 0);
+  const myPop = mySettlements.reduce((sum, s) => sum + s.population, 0);
+  const aliveFactions = w.factions.filter(f => !f.eliminated);
+  
+  const isWin = (myPop > totalPop * 0.6 && totalPop > 0) || (aliveFactions.length === 1 && aliveFactions[0].id === w.playerFactionId);
+  
+  if (isEliminated) {
+    showGameOver("Dynasty Ends", "Your kingdom has fallen into ruin and your lands are lost. History will forget your name.", "#e74c3c");
+  } else if (isWin) {
+    showGameOver("Victory", "Your dynasty has secured dominance over the known world. A golden age begins!", "#f1c40f");
+  }
+}
+
+function showGameOver(title: string, desc: string, color: string) {
+  gameOverTriggered = true;
+  speed = 0;
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-speed="0"]')?.classList.add('active');
+  
+  const banner = document.getElementById('game-over-banner')!;
+  document.getElementById('game-over-title')!.textContent = title;
+  document.getElementById('game-over-title')!.style.color = color;
+  document.getElementById('game-over-desc')!.textContent = desc;
+  banner.style.display = 'flex';
+}
+
+document.getElementById('continue-observer-btn')!.onclick = () => {
+  world.playerFactionId = null;
+  document.getElementById('game-over-banner')!.style.display = 'none';
+  speed = 1;
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-speed="1"]')?.classList.add('active');
+  updateHud(world, selected);
+};
+
+if (!loadedAutosave) {
+  showFactionPicker();
+}
 
 document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
@@ -145,8 +233,15 @@ document.getElementById('factions')!.addEventListener('click', (e) => {
     const a = parseInt(target.dataset.a!);
     const b = parseInt(target.dataset.b!);
     const war = world.diplo?.wars.find(w => w.a === a && w.b === b);
-    if (war && world.playerFactionId !== undefined) {
-      makePeace(world, war, world.playerFactionId);
+    if (war && world.playerFactionId != null) {
+      sueForPeace(world, war, world.playerFactionId);
+      updateHud(world, selected);
+    }
+  }
+  if (target.classList.contains('declare-war-btn')) {
+    const targetId = parseInt(target.dataset.target!);
+    if (world.playerFactionId != null) {
+      playerDeclareWar(world, targetId);
       updateHud(world, selected);
     }
   }
@@ -160,7 +255,7 @@ for (const key of policyInputs) {
   if (el && valEl) {
     el.addEventListener('input', () => {
       valEl.textContent = el.value;
-      if (world.playerFactionId !== undefined && world.factions[world.playerFactionId]) {
+      if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
         const p = world.factions[world.playerFactionId].policy!;
         if (key === 'recruit') p.recruitment = parseFloat(el.value);
         else if (key === 'trade') p.tradeStance = parseFloat(el.value);
@@ -172,7 +267,7 @@ for (const key of policyInputs) {
 const stanceEl = document.getElementById('policy-stance') as HTMLInputElement;
 if (stanceEl) {
   stanceEl.addEventListener('change', () => {
-    if (world.playerFactionId !== undefined && world.factions[world.playerFactionId]) {
+    if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
       world.factions[world.playerFactionId].policy!.militaryStance = stanceEl.checked ? 'AGGRESSIVE' : 'DEFENSIVE';
     }
   });
@@ -204,6 +299,7 @@ loadFile.addEventListener('change', (e) => {
         world = loadWorld(json);
         applyPlaystyle(world);
         selected = null;
+        gameOverTriggered = false;
         console.log('World loaded.');
       } catch (err) {
         console.error('Failed to load world', err);
@@ -229,6 +325,7 @@ function frame(now: number) {
     step(world);
     if (performance.now() > budget) { acc = 0; break; } // keep UI responsive
   }
+  checkWinLoss(world);
   render(ctx, world, cam, selected);
   if (++hudTimer % 10 === 0 || speed === 0) updateHud(world, selected);
   requestAnimationFrame(frame);

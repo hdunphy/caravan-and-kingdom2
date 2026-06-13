@@ -230,8 +230,17 @@ export function courtSystem(world: World) {
       fac.mobilizeTicks = 0;
       fac.mobilizeTarget = null;
       // During war, keep recruiting up to wartime target
-      const aggr = effectiveAggression(world, fid);
       recruitSoldiers(world, fid, armyCap(world, fid));
+    }
+
+    if (fid === world.playerFactionId) {
+      if (!atWarAny(world, fid)) {
+        fac.focus = 'PEACE';
+        fac.mobilizeTicks = 0;
+        fac.mobilizeTarget = null;
+        manageGarrison(world, fid);
+      }
+      continue;
     }
 
     // Check for opportunistic attacks (if we are opportunistic, at peace, and see a significantly weaker neighbor/bloc)
@@ -386,11 +395,13 @@ export function courtSystem(world: World) {
     const hostileAndPop = (myPop >= masterPop * DIPLO.VASSAL_INDEPENDENCE_POP_RATIO) && (rel <= -30);
 
     if (stronger || hostileAndPop) {
-      log(world, `!!! REBELLION !!! ${fac.name} has declared a WAR OF INDEPENDENCE against their overlord, ${masterFac.name}!`);
-      delete fac.vassalOf;
-      const goal = masterSettlements[0];
-      if (goal) {
-        declareWar(world, fid, masterId, goal.id, true);
+      if (fid !== world.playerFactionId) {
+        log(world, `!!! REBELLION !!! ${fac.name} has declared a WAR OF INDEPENDENCE against their overlord, ${masterFac.name}!`);
+        delete fac.vassalOf;
+        const goal = masterSettlements[0];
+        if (goal) {
+          declareWar(world, fid, masterId, goal.id, true);
+        }
       }
       continue;
     }

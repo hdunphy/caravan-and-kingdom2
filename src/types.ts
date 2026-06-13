@@ -142,7 +142,7 @@ export interface LogEvent {
 }
 
 export interface Alert {
-  type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT';
+  type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT' | 'DIPLO';
   tick: number;
   targetId?: number;
   msg: string;
@@ -152,6 +152,7 @@ export interface World {
   seed: number;
   tick: number;
   mapRadius: number;
+  playerFactionId: number | null;
   rng: ReturnType<typeof import('./core/rng.js').makeRng>;
   hexes: Map<string, Hex>;
   settlements: Settlement[];

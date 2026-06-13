@@ -24,7 +24,9 @@ export function metabolismSystem(world: World) {
     s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus * policy.taxRate;
 
     const besieged = s.siegeHp != null;
-    if (besieged) pushAlert(world, { type: 'SIEGE', tick: world.tick, targetId: s.id, msg: `${s.name} is under siege!` });
+    if (besieged && s.factionId === world.playerFactionId) {
+      pushAlert(world, { type: 'SIEGE', tick: world.tick, targetId: s.id, msg: `${s.name} is under siege!` });
+    }
     
     let need = s.population * ECON.FOOD_PER_POP * policy.rations;
     if (besieged) need *= 0.5; // siege rations: the blockade starves slowly, not instantly
@@ -46,7 +48,9 @@ export function metabolismSystem(world: World) {
         s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty;
       }
     } else {
-      pushAlert(world, { type: 'STARVATION', tick: world.tick, targetId: s.id, msg: `${s.name} is starving!` });
+      if (s.factionId === world.playerFactionId) {
+        pushAlert(world, { type: 'STARVATION', tick: world.tick, targetId: s.id, msg: `${s.name} is starving!` });
+      }
       s.stock.food = 0;
       // Starvation scales with how many mouths go unfed
       s.population = Math.max(0, s.population - (0.05 + s.population * 0.0008));

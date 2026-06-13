@@ -232,6 +232,14 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    if (world.playerFactionId === s.factionId) {
+      ctx.beginPath();
+      ctx.arc(x, y, tierR + 1.5, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)'; // subtle gold ring
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
     // Inner accent ring
     ctx.beginPath();
     ctx.arc(x, y, Math.max(1, tierR - 2.5), 0, Math.PI * 2);

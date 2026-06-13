@@ -1,13 +1,37 @@
 // ---------- War conduct ----------
 import { key, distance } from '../../core/hex.js';
 import { DIPLO, ECON, TERRAIN } from '../../core/constants.js';
-import { log, controlledHexes } from '../settlement.js';
+import { log, controlledHexes, pushAlert } from '../settlement.js';
 import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
 import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
+
+export function playerDeclareWar(world: World, targetId: number) {
+  if (world.playerFactionId == null) return;
+  const fid = world.playerFactionId;
+  
+  if (atWar(world, fid, targetId)) return;
+  if ((world.diplo.truces[pairKey(fid, targetId)] ?? 0) > world.tick) return;
+  
+  const army = armyCap(world, fid);
+  const activeWars = world.diplo.wars.filter(w => w.a === fid || w.b === fid).length;
+  const requiredWarChest = army * DIPLO.WAGE_SOLDIER * 1500 * (activeWars + 1);
+  const currentGold = goldF(world, fid);
+  
+  if (currentGold < requiredWarChest) {
+    pushAlert(world, { type: 'DIPLO', tick: world.tick, msg: `Not enough gold to fund the war chest! Need ${Math.round(requiredWarChest)}g.` });
+    return;
+  }
+  
+  const goal = pickWarGoal(world, fid, targetId);
+  if (goal) {
+    log(world, `${world.factions[fid].name} formally declared WAR on ${world.factions[targetId].name}!`);
+    declareWar(world, fid, targetId, goal.id, true);
+  }
+}
 
 export function declareWar(world: World, attackerId: number, defenderId: number, goalId: number, isInitial = false) {
   if (atWar(world, attackerId, defenderId)) return;
