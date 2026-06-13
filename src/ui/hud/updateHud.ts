@@ -1,7 +1,7 @@
 // Observer HUD: faction overview, inspector panel, event log.
 import { TERRAIN, TIERS } from '../../core/constants.js';
 import { summarize } from '../../sim/gameLoop.js';
-import { stateOf, getRelation } from '../../sim/diplomacy.js';
+import { stateOf, getRelation, strengthOf } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
 import { getPolicyLabels } from './policyLabels.js';
