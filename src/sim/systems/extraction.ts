@@ -31,8 +31,9 @@ export function extractionSystem(world: World) {
         continue;
       }
       let rate = t.rate * workEfficiency;
-      if (hex.building && BUILDINGS[hex.building]?.yieldMult) {
-        rate *= BUILDINGS[hex.building].yieldMult * (hex.buildingIntegrity / 100);
+      const bdef = (BUILDINGS as Record<string, any>)[hex.building as string];
+      if (hex.building && bdef?.yieldMult) {
+        rate *= bdef.yieldMult * (hex.buildingIntegrity / 100);
       } else {
         rate *= 0.4; // unimproved hexes trickle
       }

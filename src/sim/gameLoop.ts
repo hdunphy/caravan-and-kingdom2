@@ -61,10 +61,10 @@ export function summarize(world: World) {
       villagers: world.agents.filter(a => a.factionId === f.id && a.type === 'villager').length,
       caravans: world.agents.filter(a => a.factionId === f.id && a.type === 'caravan').length,
       gold: Math.round(towns.reduce((a, s) => a + s.gold, 0)),
-      stock: towns.reduce((acc, s) => {
+      stock: towns.reduce((acc: Record<string, number>, s) => {
         for (const r of ['food', 'timber', 'stone', 'ore']) acc[r] = Math.round((acc[r] ?? 0) + s.stock[r]);
         return acc;
-      }, {}),
+      }, {} as Record<string, number>),
     };
   });
 }

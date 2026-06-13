@@ -63,7 +63,7 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
 
     const m = moisture(nx + 40.5, ny + 92.1, 3);
 
-    let terrain;
+    let terrain: TerrainKind;
     if (e < 0.30) terrain = 'WATER';
     else if (e > 0.66) terrain = 'MOUNTAINS';
     else if (e > 0.56) terrain = 'HILLS';

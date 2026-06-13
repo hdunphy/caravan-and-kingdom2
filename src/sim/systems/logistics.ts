@@ -14,7 +14,7 @@ export function buildClaims(world: World) {
   for (const a of world.agents) {
     if (a.mission?.kind === 'gather' && a.mission.phase === 'out') {
       const k = a.mission.tq + ',' + a.mission.tr + ':' + a.mission.resource;
-      claims.set(k, (claims.get(k) ?? 0) + (AGENT_CAPACITY[a.type] ?? 10));
+      claims.set(k, (claims.get(k) ?? 0) + ((AGENT_CAPACITY as Record<string, number>)[a.type] ?? 10));
     }
   }
   return claims;
@@ -86,7 +86,7 @@ export function rankedNeeds(world: World, s: Settlement) {
     return s._rankedNeeds;
   }
   // Lower stock = higher need; focus resource gets a boost.
-  const weights = { food: 1.5, timber: 1.0, stone: 0.8, ore: 0.6 };
+  const weights: Record<string, number> = { food: 1.5, timber: 1.0, stone: 0.8, ore: 0.6 };
   const needs = ['food', 'timber', 'stone', 'ore']
     .map(res => ({ res, score: weights[res] * (1 / (1 + s.stock[res] / 50)) * (s.focus === res ? 2 : 1) }))
     .sort((a, b) => b.score - a.score)

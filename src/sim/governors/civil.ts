@@ -17,7 +17,7 @@ export function civilGovernor(world: World, s: Settlement) {
   // Tier upgrade
   if (s.goal === GOALS.UPGRADE && tier.next && canAfford(s, tier.upgradeCost)) {
     pay(s, tier.upgradeCost);
-    s.tier = tier.next;
+    s.tier = tier.next as Tier;
     claimTerritory(world, s);
     world.pathCache?.clear();
     s.role = computeRole(world, s);
@@ -123,7 +123,7 @@ export function civilGovernor(world: World, s: Settlement) {
   if (builtCount >= TIERS[s.tier].jobCap) return;
 
   const needs = rankedNeeds(world, s);
-  const buildingFor = { food: 'GATHERERS_HUT', timber: 'SAWMILL', stone: 'MASONRY', ore: 'SMITHY' };
+  const buildingFor: Record<string, string> = { food: 'GATHERERS_HUT', timber: 'SAWMILL', stone: 'MASONRY', ore: 'SMITHY' };
   const roleBoost = {
     [ROLES.LUMBER]: 'timber', [ROLES.MINING]: 'stone',
     [ROLES.GRANARY]: 'food', [ROLES.GENERAL]: null,
@@ -147,7 +147,7 @@ export function civilGovernor(world: World, s: Settlement) {
       }
     }
     const bKey = buildingFor[res];
-    const b = BUILDINGS[bKey];
+    const b = (BUILDINGS as Record<string, any>)[bKey];
     if (!canAfford(s, b.cost)) continue;
     const hex = controlledHexes(world, s).find(h =>
       h.terrain === b.terrain && !h.building && !(h.q === s.q && h.r === s.r));
@@ -215,14 +215,14 @@ function paveRoads(world: World, s: Settlement) {
 
   // Full trade routes to favored partners
   const partners = favoredPartners(world, s);
-  let routeHexes = [];
+  let routeHexes: Hex[] = [];
   let routePartner = null;
   for (const partner of partners) {
     const path = findPath(world, s.q, s.r, partner.q, partner.r, true);
     if (!path) continue;
     const hexes = path
       .map(([q, r]) => world.hexes.get(key(q, r)))
-      .filter(h => h && h.terrain !== 'WATER' &&
+      .filter((h): h is Hex => !!h && h.terrain !== 'WATER' &&
         !world.settlements.some(o => o.q === h.q && o.r === h.r));
     if (!routePartner && hexes.some(h => !h.hasRoad)) routePartner = partner;
     routeHexes.push(...hexes);
@@ -321,7 +321,7 @@ export function findColonySite(world: World, s: Settlement) {
     if (world.settlements.some(o => distance(o.q, o.r, q, r) < ECON.EXPAND_MIN_DIST)) continue;
     // Score by unclaimed yield variety around the site
     let score = 0;
-    const seen = {};
+    const seen: Record<string, boolean> = {};
     for (const [nq, nr] of range(q, r, 2)) {
       const n = world.hexes.get(key(nq, nr));
       if (!n || n.owner !== null) continue;

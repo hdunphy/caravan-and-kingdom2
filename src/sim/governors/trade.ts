@@ -15,14 +15,14 @@ export function tradeGovernor(world: World, s: Settlement) {
     a.homeId === s.id && a.type === 'caravan' && a.state === 'idle' &&
     a.integrity >= ECON.REPAIR_THRESHOLD);
   if (idle.length === 0) return;
-  let caravan = idle.shift();
+  let caravan = idle.shift()!;
 
   // Buy what we're missing (outbound gold or barter). While saving for an upgrade,
   // keep buying until the upgrade cost is covered.
   const buyNeeds = survival ? ['food'] : rankedNeeds(world, s);
   for (const res of buyNeeds) {
     const upgradeNeed = (s.goal === GOALS.UPGRADE && TIERS[s.tier].next)
-      ? (TIERS[s.tier].upgradeCost[res] ?? 0) + 40 : 0;
+      ? ((TIERS[s.tier].upgradeCost as Record<string, number> | null)?.[res] ?? 0) + 40 : 0;
     const target = Math.max(40, upgradeNeed);
     if (s.stock[res] >= target) continue;
 
@@ -63,10 +63,10 @@ export function tradeGovernor(world: World, s: Settlement) {
         caravan.cargo[barterRes] += amt;
       }
       caravan.mission = {
-        kind: 'trade', destId: seller.id, resource: res, phase: 'out',
-        price: unit, barterRes
+        kind: 'trade', destId: seller.id, resource: res as Resource, phase: 'out',
+        price: unit, barterRes: (barterRes ?? undefined) as Resource | undefined
       };
-      caravan = idle.shift();
+      caravan = idle.shift()!;
       if (!caravan) return;
       break;
     }
@@ -101,7 +101,7 @@ export function tradeGovernor(world: World, s: Settlement) {
       }
 
       caravan.mission = {
-        kind: 'export', destId: buyer.id, resource: res, phase: 'out',
+        kind: 'export', destId: buyer.id, resource: res as Resource, phase: 'out',
         price
       };
       return;

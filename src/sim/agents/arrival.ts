@@ -20,11 +20,11 @@ export function onArrival(world: World, agent: Agent) {
     case 'gather': {
       if (m.phase === 'out') {
         const hex = world.hexes.get(m.tq + ',' + m.tr);
-        const cap = AGENT_CAPACITY[agent.type] ?? 10;
-        if (hex && hex.resources[m.resource] > 0) {
-          const take = Math.min(hex.resources[m.resource], cap);
-          hex.resources[m.resource] -= take;
-          agent.cargo[m.resource] += take;
+        const cap = (AGENT_CAPACITY as Record<string, number>)[agent.type] ?? 10;
+        if (hex && hex.resources[m.resource!] > 0) {
+          const take = Math.min(hex.resources[m.resource!], cap);
+          hex.resources[m.resource!] -= take;
+          agent.cargo[m.resource!] += take;
         }
         if (!home || !assignPath(world, agent, home.q, home.r)) { cancelMission(world, agent); return; }
         m.phase = 'back';
@@ -55,13 +55,13 @@ export function onArrival(world: World, agent: Agent) {
         if (seller && home) {
           if (m.barterRes) {
             // Barter: swap goods 1:1
-            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource] - 60),
-                                    agent.cargo[m.barterRes] ?? 0);
+            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource!] - 60),
+                                    agent.cargo[m.barterRes!] ?? 0);
             if (amount > 0) {
-              seller.stock[m.resource] -= amount;
-              deposit(seller, { [m.barterRes]: amount });
-              agent.cargo[m.barterRes] -= amount;
-              agent.cargo[m.resource] += amount;
+              seller.stock[m.resource!] -= amount;
+              deposit(seller, { [m.barterRes!]: amount });
+              agent.cargo[m.barterRes!] -= amount;
+              agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
               if (home.buildings.includes('MARKET_HALL')) {
                 home.gold += Math.round(amount * 0.1);
@@ -74,13 +74,13 @@ export function onArrival(world: World, agent: Agent) {
           } else {
             // Gold purchase
             const unit = m.price ?? ECON.TRADE_PRICE;
-            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource] - 60));
+            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource!] - 60));
             const price = Math.ceil(amount * unit);
             if (amount > 0 && home.gold >= price) {
-              seller.stock[m.resource] -= amount;
+              seller.stock[m.resource!] -= amount;
               seller.gold += price;
               home.gold -= price;
-              agent.cargo[m.resource] += amount;
+              agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
               if (home.buildings.includes('MARKET_HALL')) {
                 home.gold += Math.round(amount * 0.1);
@@ -109,15 +109,15 @@ export function onArrival(world: World, agent: Agent) {
       if (m.phase === 'out') {
         if (buyer && home) {
           const unit = m.price ?? ECON.TRADE_PRICE;
-          const offered = agent.cargo[m.resource];
+          const offered = agent.cargo[m.resource!];
           const affordable = (home.factionId === buyer.factionId || unit === 0) ? offered : Math.floor(buyer.gold / unit);
           const sold = Math.min(offered, affordable);
           if (sold > 0) {
             const price = home.factionId === buyer.factionId ? 0 : sold * unit;
             buyer.gold -= price;
             home.gold += price;
-            agent.cargo[m.resource] -= sold;
-            deposit(buyer, { [m.resource]: sold });
+            agent.cargo[m.resource!] -= sold;
+            deposit(buyer, { [m.resource!]: sold });
             recordTrade(world, home.factionId, buyer.factionId);
             if (home.buildings.includes('MARKET_HALL')) {
               home.gold += Math.round(sold * 0.1);

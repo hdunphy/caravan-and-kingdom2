@@ -37,8 +37,8 @@ export function transportGovernor(world: World, s: Settlement) {
       }
     }
     if (best && assignPath(world, caravan, best.q, best.r)) {
-      caravan.mission = { kind: 'gather', tq: best.q, tr: best.r, resource: bestRes, phase: 'out' };
-      takeTicket(world.claims, best.q, best.r, bestRes, AGENT_CAPACITY.caravan);
+      caravan.mission = { kind: 'gather', tq: best.q, tr: best.r, resource: bestRes as Resource, phase: 'out' };
+      takeTicket(world.claims, best.q, best.r, bestRes!, AGENT_CAPACITY.caravan);
     }
   }
 }
