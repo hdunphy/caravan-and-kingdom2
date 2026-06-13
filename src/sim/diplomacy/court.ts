@@ -1,7 +1,7 @@
 // ---------- The Court ----------
 // The faction-level brain, meeting every DIPLO.INTERVAL ticks.
 import { key, distance } from '../../core/hex.js';
-import { DIPLO, ECON, TERRAIN } from '../../core/constants.js';
+import { DIPLO, ECON, TERRAIN, DEFAULT_POLICY } from '../../core/constants.js';
 import { log, deposit, controlledHexes, storageCap } from '../settlement.js';
 import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { findColonySite } from '../governors.js';
@@ -11,11 +11,28 @@ import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultipli
 import { declareWar, pickWarGoal, recruitSoldiers, warCouncil } from './war.js';
 import { checkPeace, makePeace } from './peace.js';
 import { manageGarrison, considerGift } from './peacetime.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function courtSystem(world: World) {
   if (!world.diplo || world.tick % DIPLO.INTERVAL !== 0 || world.tick === 0) return;
   const d = world.diplo;
+
+  // AI Courts set policy from traits
+  for (const fac of world.factions) {
+    if (!aliveF(world, fac.id)) continue;
+    if (fac.id === world.playerFactionId) continue; // Skip player faction (WP5)
+    
+    if (!fac.policy) fac.policy = { ...DEFAULT_POLICY };
+    const traits = traitsF(world, fac.id);
+    fac.policy.expansion = traits.expand ?? 1.0;
+    fac.policy.tradeStance = traits.trade ?? 1.0;
+    fac.policy.recruitment = traits.aggression ?? 1.0;
+    fac.policy.garrison = 1.0;
+    fac.policy.taxRate = 1.0;
+    fac.policy.rations = 1.0;
+    fac.policy.militaryStance = (traits.aggression ?? 1.0) >= 1.2 ? 'AGGRESSIVE' : 'BALANCED';
+  }
 
   // Clean up expired pacts
   d.pacts = (d.pacts ?? []).filter((p: any) => {
@@ -172,8 +189,9 @@ export function courtSystem(world: World) {
     const mySettlements = settlementsF(world, fid);
     let wantToExpand = false;
     let canExpand = false;
+    const policy = policyOf(world, fid);
     for (const s of mySettlements) {
-      if (s.population >= ECON.EXPAND_MIN_POP / t.expand) {
+      if (s.population >= ECON.EXPAND_MIN_POP / policy.expansion) {
         wantToExpand = true;
         if (findColonySite(world, s)) {
           canExpand = true;

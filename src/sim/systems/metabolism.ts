@@ -1,6 +1,7 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
 import { ECON, TIERS, DIPLO } from '../../core/constants.js';
 import { log } from '../settlement.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function metabolismSystem(world: World) {
@@ -19,10 +20,11 @@ export function metabolismSystem(world: World) {
     if (factionFocus === 'MOBILIZE' || factionFocus === 'WAR') {
       taxBonus = DIPLO.MOBILIZATION_TAX_BONUS;
     }
-    s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus;
+    const policy = policyOf(world, s.factionId);
+    s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus * policy.taxRate;
 
     const besieged = s.siegeHp != null;
-    let need = s.population * ECON.FOOD_PER_POP;
+    let need = s.population * ECON.FOOD_PER_POP * policy.rations;
     if (besieged) need *= 0.5; // siege rations: the blockade starves slowly, not instantly
     if (s.stock.food >= need) {
       s.stock.food -= need;
@@ -37,6 +39,8 @@ export function metabolismSystem(world: World) {
         if (factionFocus === 'MOBILIZE' || factionFocus === 'WAR') {
           growthPenalty = DIPLO.MOBILIZATION_GROWTH_PENALTY;
         }
+        if (policy.taxRate > 1.2) growthPenalty *= 0.9;
+        if (policy.rations < 0.8) growthPenalty *= 0.9;
         s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty;
       }
     } else {

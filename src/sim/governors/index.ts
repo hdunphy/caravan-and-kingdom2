@@ -8,6 +8,7 @@ import { civilGovernor, findColonySite } from './civil.js';
 import { laborGovernor } from './labor.js';
 import { transportGovernor } from './transport.js';
 import { tradeGovernor } from './trade.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export { findColonySite } from './civil.js';
@@ -18,7 +19,8 @@ export function traitsOf(world: World, s: Settlement) {
 
 export function getSettlerCost(world: World, factionId: number) {
   const count = world.settlements.filter(s => s.factionId === factionId).length;
-  const factor = 1.0 + ECON.SETTLER_SCALING * (count - 1);
+  const policy = policyOf(world, factionId);
+  const factor = (1.0 + ECON.SETTLER_SCALING * (count - 1)) / Math.max(0.1, policy.expansion);
   return {
     food: Math.round(ECON.SETTLER_COST.food * factor),
     timber: Math.round(ECON.SETTLER_COST.timber * factor)
@@ -54,9 +56,9 @@ export function evaluateGoal(world: World, s: Settlement) {
     return;
   }
 
-  const t = traitsOf(world, s);
+  const policy = policyOf(world, s.factionId);
   if (tier.next && s.population > tier.popCap * ECON.UPGRADE_TRIGGER_POP) { s.goal = GOALS.UPGRADE; return; }
-  if (s.population >= ECON.EXPAND_MIN_POP / t.expand && s.tier !== 'VILLAGE' && !s.pendingSettler) {
+  if (s.population >= ECON.EXPAND_MIN_POP / policy.expansion && s.tier !== 'VILLAGE' && !s.pendingSettler) {
     s.goal = GOALS.EXPAND; return;
   }
   s.goal = GOALS.DEVELOP;

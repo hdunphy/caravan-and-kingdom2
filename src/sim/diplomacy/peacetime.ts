@@ -6,13 +6,15 @@ import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, h
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
 import { recruitSoldiers } from './war.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // ---------- Peacetime ----------
 export function manageGarrison(world: World, fid: number) {
   const aggr = effectiveAggression(world, fid);
+  const policy = policyOf(world, fid);
   const target = Math.min(
-    Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1)),
+    Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison),
     armyCap(world, fid));
   const soldiers = soldiersOf(world, fid);
   if (soldiers.length < target) {
