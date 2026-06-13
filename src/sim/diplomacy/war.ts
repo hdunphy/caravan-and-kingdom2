@@ -137,7 +137,7 @@ export function warCouncil(world: World, war: War, side: number) {
   // 1. Staging/Muster Town
   let goal = world.settlements.find(s => s.id === war.goalId);
   if (!goal || goal.factionId === side) {
-    goal = pickWarGoal(world, side, enemy);
+    goal = pickWarGoal(world, side, enemy) ?? undefined;
     if (goal) {
       war.goalId = goal.id;
     }
@@ -268,7 +268,7 @@ export function warCouncil(world: World, war: War, side: number) {
   if (score_siege > primaryScore) {
     primaryOp = 'SIEGE';
     primaryScore = score_siege;
-    primaryTarget = goal;
+    primaryTarget = goal ?? null;
   }
 
   let secondaryOp = 'NONE';
@@ -325,7 +325,7 @@ export function warCouncil(world: World, war: War, side: number) {
     return !committed;
   });
 
-  let secondarySoldiers = [];
+  let secondarySoldiers: Agent[] = [];
   if (secondaryOp === 'RAID' && bestRaidHex) {
     const candidates = freeSoldiers.filter(s => s.state !== 'siege');
     candidates.sort((a, b) => distance(a.q, a.r, bestRaidHex.q, bestRaidHex.r) - distance(b.q, b.r, bestRaidHex.q, bestRaidHex.r));

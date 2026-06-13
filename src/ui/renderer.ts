@@ -202,7 +202,7 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
     if (!linked) roadSegments.push([x, y, x, y]); // stub: dot
   }
   ctx.lineCap = 'round';
-  for (const [w_, color] of [[6, '#3a2d1a'], [3.5, '#c89858']]) {
+  for (const [w_, color] of [[6, '#3a2d1a'], [3.5, '#c89858']] as Array<[number, string]>) {
     ctx.strokeStyle = color;
     ctx.lineWidth = w_;
     ctx.beginPath();

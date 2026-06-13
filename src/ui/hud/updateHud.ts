@@ -10,15 +10,15 @@ const fmt = (n: number) => Math.round(n);
 
 let eventFilter = 'all';
 let filterBound = false;
-let lastWorld = null;
-let lastSelected = null;
+let lastWorld: any = null;
+let lastSelected: any = null;
 
 function bindFilterEvents() {
   if (filterBound) return;
   const buttons = document.querySelectorAll<HTMLElement>('.event-filter');
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
-      eventFilter = btn.dataset.filter;
+      eventFilter = btn.dataset.filter!;
       buttons.forEach(b => b.classList.toggle('active', b === btn));
       if (lastWorld) updateHud(lastWorld, lastSelected);
     });
@@ -30,7 +30,7 @@ export function updateHud(world: World, selected: any) {
   lastWorld = world;
   lastSelected = selected;
   bindFilterEvents();
-  document.getElementById('tick').textContent = `Tick ${world.tick}`;
+  document.getElementById('tick')!.textContent = `Tick ${world.tick}`;
 
   // Faction overview
   const summaries = summarize(world);
@@ -52,7 +52,7 @@ export function updateHud(world: World, selected: any) {
 
     const focus = fac.focus ?? 'PEACE';
     const focusColors = { WAR: '#e74c3c', MOBILIZE: '#f1c40f', PEACE: '#2ecc71' };
-    const focusBadgeColor = focusColors[focus] ?? '#2ecc71';
+    const focusBadgeColor = (focusColors as Record<string, string>)[focus] ?? '#2ecc71';
     const focusHtml = `<span style="font-size: 8px; padding: 1px 4px; border-radius: 4px; background: ${focusBadgeColor}22; border: 1px solid ${focusBadgeColor}; color: ${focusBadgeColor}; font-weight: bold; margin-left: auto;">${focus}</span>`;
 
     // Vassal badge for living vassals
@@ -99,8 +99,8 @@ export function updateHud(world: World, selected: any) {
       for (let b = a + 1; b < world.factions.length; b++) {
         if (world.factions[a].eliminated || world.factions[b].eliminated) continue;
         const st = stateOf(world, a, b);
-        diploRows += `<div style="color:${colors[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">
-          <span>${icons[st]} <b>${world.factions[a].name}</b>–<b>${world.factions[b].name}</b></span>
+        diploRows += `<div style="color:${(colors as Record<string, string>)[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">
+          <span>${(icons as Record<string, string>)[st]} <b>${world.factions[a].name}</b>–<b>${world.factions[b].name}</b></span>
           <span class="logtick">${st.toLowerCase()} ${Math.round(getRelation(world, a, b))}</span></div>`;
       }
     }
@@ -127,15 +127,15 @@ export function updateHud(world: World, selected: any) {
       activeWarsHtml += `</div>`;
     }
   }
-  document.getElementById('factions').innerHTML = rows + (diploRows ? '<hr>' + diploRows : '') + (activeWarsHtml ? '<hr>' + activeWarsHtml : '');
+  document.getElementById('factions')!.innerHTML = rows + (diploRows ? '<hr>' + diploRows : '') + (activeWarsHtml ? '<hr>' + activeWarsHtml : '');
   drawChart(world);
 
   // Inspector
-  const panel = document.getElementById('inspector');
+  const panel = document.getElementById('inspector')!;
   if (!selected) { panel.innerHTML = '<i>Click a hex to inspect</i>'; }
   else {
     const hex = selected;
-    const t = TERRAIN[hex.terrain];
+    const t = (TERRAIN as Record<string, any>)[hex.terrain];
     const settlement = settlementAt(world, hex.q, hex.r);
     const owner = hex.owner !== null ? world.settlements.find(s => s.id === hex.owner) : null;
     let html = `<b>${t.name}</b> (${hex.q}, ${hex.r})<br>`;
@@ -182,7 +182,7 @@ export function updateHud(world: World, selected: any) {
     });
   }
 
-  document.getElementById('log').innerHTML = filteredLog.slice(-12).reverse()
+  document.getElementById('log')!.innerHTML = filteredLog.slice(-12).reverse()
     .map(e => {
       let badge = '⚱';
       let color = '#dfe6ee';

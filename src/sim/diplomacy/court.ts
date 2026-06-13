@@ -99,8 +99,8 @@ export function courtSystem(world: World) {
         if ((agent.type === 'villager' || agent.type === 'caravan') && agent.mission && (agent.mission.kind === 'trade' || agent.mission.kind === 'export')) {
           const home = homeOf(world, agent);
           if (home) {
-            const isBetween = (agent.factionId === a && agent.mission.destId && world.settlements.find(s => s.id === agent.mission.destId)?.factionId === b) ||
-              (agent.factionId === b && agent.mission.destId && world.settlements.find(s => s.id === agent.mission.destId)?.factionId === a);
+            const isBetween = (agent.factionId === a && agent.mission?.destId && world.settlements.find(s => s.id === agent.mission!.destId)?.factionId === b) ||
+              (agent.factionId === b && agent.mission?.destId && world.settlements.find(s => s.id === agent.mission!.destId)?.factionId === a);
             if (isBetween) {
               cancelMission(world, agent);
             }

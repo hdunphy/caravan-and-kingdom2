@@ -35,7 +35,7 @@ export function combatSystem(world: World) {
     if (a.type !== 'soldier') continue;
     const k = a.q + ',' + a.r;
     if (!hexBuckets.has(k)) hexBuckets.set(k, []);
-    hexBuckets.get(k).push(a);
+    hexBuckets.get(k)!.push(a);
   }
 
   const fieldDead = [];
@@ -149,12 +149,12 @@ export function combatSystem(world: World) {
         if (hasA && !hasB) {
           war.exh[fa] = Math.max(0, war.exh[fa] - DIPLO.EXH_BATTLE_WINNER_RELIEF);
           war.exh[fb] += DIPLO.EXH_BATTLE_LOSER_COST;
-          const hex = world.hexes.get(hk);
+          const hex = world.hexes.get(hk)!;
           log(world, `Battle near (${hex.q},${hex.r}) resolved: ${world.factions[fa].name} is victorious!`);
         } else if (hasB && !hasA) {
           war.exh[fb] = Math.max(0, war.exh[fb] - DIPLO.EXH_BATTLE_WINNER_RELIEF);
           war.exh[fa] += DIPLO.EXH_BATTLE_LOSER_COST;
-          const hex = world.hexes.get(hk);
+          const hex = world.hexes.get(hk)!;
           log(world, `Battle near (${hex.q},${hex.r}) resolved: ${world.factions[fb].name} is victorious!`);
         }
       }
@@ -254,7 +254,7 @@ export function combatSystem(world: World) {
   for (const a of world.agents) {
     if (a.type === 'soldier' && a.state === 'siege' && a.mission?.targetId != null) {
       if (!sieges.has(a.mission.targetId)) sieges.set(a.mission.targetId, []);
-      sieges.get(a.mission.targetId).push(a);
+      sieges.get(a.mission.targetId)!.push(a);
     }
   }
   for (const [targetId, attackers] of [...sieges.entries()].sort((x, y) => x[0] - y[0])) {
