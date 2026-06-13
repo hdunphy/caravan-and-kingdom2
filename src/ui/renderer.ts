@@ -1,13 +1,14 @@
 // Canvas renderer: hex map, territory borders, buildings, resource piles, agents.
 import { hexToPixel, hexCorners, HEX_DIRS, key } from '../core/hex.js';
 import { TERRAIN, TIERS } from '../core/constants.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
 export const HEX_SIZE = 26;
 
 // Render-side position smoothing: the sim moves agents hex-to-hex, the
 // renderer eases their drawn position toward the true one every frame.
 const displayPos = new Map();
-function smoothPos(agent, tx, ty) {
+function smoothPos(agent: Agent, tx: number, ty: number) {
   let p = displayPos.get(agent.id);
   if (!p) { p = { x: tx, y: ty }; displayPos.set(agent.id, p); return p; }
   const dx = tx - p.x, dy = ty - p.y;
@@ -16,7 +17,7 @@ function smoothPos(agent, tx, ty) {
   return p;
 }
 
-export function render(ctx, world, cam, selected) {
+export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, selected: any) {
   const { canvas } = ctx;
   ctx.fillStyle = '#1a2230';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -26,8 +27,8 @@ export function render(ctx, world, cam, selected) {
   ctx.scale(cam.zoom, cam.zoom);
   ctx.translate(-cam.x, -cam.y);
 
-  const factionColor = id => world.factions[id]?.color ?? '#fff';
-  const settlementById = new Map(world.settlements.map(s => [s.id, s]));
+  const factionColor = (id: number) => world.factions[id]?.color ?? '#fff';
+  const settlementById: Map<number, any> = new Map(world.settlements.map(s => [s.id, s] as [number, any]));
   const settlementKeys = new Set(world.settlements.map(s => key(s.q, s.r)));
 
   // Hexes
@@ -201,7 +202,7 @@ export function render(ctx, world, cam, selected) {
     if (!linked) roadSegments.push([x, y, x, y]); // stub: dot
   }
   ctx.lineCap = 'round';
-  for (const [w_, color] of [[6, '#3a2d1a'], [3.5, '#c89858']]) {
+  for (const [w_, color] of [[6, '#3a2d1a'], [3.5, '#c89858']] as Array<[number, string]>) {
     ctx.strokeStyle = color;
     ctx.lineWidth = w_;
     ctx.beginPath();

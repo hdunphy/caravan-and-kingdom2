@@ -1,91 +1,13 @@
-// Agents: villagers (reactive ants), caravans (logistics/trade), settlers.
-import { distance, range } from '../core/hex.js';
-import { findPath } from '../core/pathfinding.js';
-import { ECON } from '../core/constants.js';
-import { foundSettlement, deposit, log } from './settlement.js';
-
-export const AGENT_SPEED = { villager: 1.0, caravan: 1.5, settler: 0.8, soldier: 1.0 };
-
-// Cross-faction transactions warm relations; the Court tallies them each session.
-function recordTrade(world, fa, fb) {
-  if (fa === fb || !world.diplo) return;
-  const k = Math.min(fa, fb) + '|' + Math.max(fa, fb);
-  world.diplo.tradeCounts[k] = (world.diplo.tradeCounts[k] ?? 0) + 1;
-  if (world.stats) {
-    world.stats.trades[fa] = (world.stats.trades[fa] ?? 0) + 1;
-    world.stats.trades[fb] = (world.stats.trades[fb] ?? 0) + 1;
-  }
-}
-
-// Nearest valid colony spot around a failed site.
-function findFallbackSite(world, q0, r0, radius = 4) {
-  let best = null, bestD = Infinity;
-  for (const [q, r] of range(q0, r0, radius)) {
-    const hex = world.hexes.get(q + ',' + r);
-    if (!hex || hex.owner !== null) continue;
-    if (hex.terrain === 'WATER' || hex.terrain === 'MOUNTAINS') continue;
-    if (world.settlements.some(o => distance(o.q, o.r, q, r) < ECON.EXPAND_MIN_DIST)) continue;
-    const d = distance(q0, r0, q, r);
-    if (d > 0 && d < bestD) { bestD = d; best = { q, r }; }
-  }
-  return best;
-}
-export const AGENT_CAPACITY = { villager: ECON.VILLAGER_CAPACITY, caravan: ECON.CARAVAN_CAPACITY, soldier: 30 };
-
-export function spawnAgent(world, type, factionId, homeId, q, r) {
-  const agent = {
-    id: world.nextId++,
-    type, factionId, homeId,
-    q, r,
-    path: [], progress: 0,
-    state: 'idle',          // idle | travel
-    mission: null,
-    cargo: { food: 0, timber: 0, stone: 0, ore: 0 },
-    integrity: 100,
-    engagedSince: null,
-  };
-  world.agents.push(agent);
-  return agent;
-}
-
-export function homeOf(world, agent) {
-  return world.settlements.find(s => s.id === agent.homeId);
-}
-
-// Route cache: hundreds of agents walk the same settlement<->pile routes,
-// so A* results are shared. Cleared periodically (roads change costs).
-export function assignPath(world, agent, tq, tr) {
-  if (!world.pathCache) world.pathCache = new Map();
-  const ck = agent.q + ',' + agent.r + '>' + tq + ',' + tr;
-  let path = world.pathCache.get(ck);
-  if (path === undefined) {
-    path = findPath(world, agent.q, agent.r, tq, tr);
-    if (world.pathCache.size < 20000) {
-      world.pathCache.set(ck, path === null ? null : path.slice());
-    }
-  }
-  if (path === null) return false;
-  agent.path = path.slice();
-  agent.progress = 0;
-  agent.state = 'travel';
-  return true;
-}
-
-export function cancelMission(world, agent) {
-  agent.mission = null;
-  agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
-  const home = homeOf(world, agent);
-  if (home && (agent.q !== home.q || agent.r !== home.r)) {
-    if (assignPath(world, agent, home.q, home.r)) {
-      agent.mission = { kind: 'return' };
-      return;
-    }
-  }
-  agent.state = 'idle';
-}
+// Mission resolution: what happens when an agent reaches the end of its path.
+import { distance } from '../../core/hex.js';
+import { ECON } from '../../core/constants.js';
+import { foundSettlement, deposit, log } from '../settlement.js';
+import { AGENT_CAPACITY, homeOf, spawnAgent, recordTrade, findFallbackSite } from './spawn.js';
+import { assignPath, cancelMission } from './movement.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // Called by the movement system when an agent finishes its path.
-export function onArrival(world, agent) {
+export function onArrival(world: World, agent: Agent) {
   const m = agent.mission;
   const home = homeOf(world, agent);
   if (!m) { agent.state = 'idle'; return; }
@@ -98,11 +20,11 @@ export function onArrival(world, agent) {
     case 'gather': {
       if (m.phase === 'out') {
         const hex = world.hexes.get(m.tq + ',' + m.tr);
-        const cap = AGENT_CAPACITY[agent.type] ?? 10;
-        if (hex && hex.resources[m.resource] > 0) {
-          const take = Math.min(hex.resources[m.resource], cap);
-          hex.resources[m.resource] -= take;
-          agent.cargo[m.resource] += take;
+        const cap = (AGENT_CAPACITY as Record<string, number>)[agent.type] ?? 10;
+        if (hex && hex.resources[m.resource!] > 0) {
+          const take = Math.min(hex.resources[m.resource!], cap);
+          hex.resources[m.resource!] -= take;
+          agent.cargo[m.resource!] += take;
         }
         if (!home || !assignPath(world, agent, home.q, home.r)) { cancelMission(world, agent); return; }
         m.phase = 'back';
@@ -133,13 +55,13 @@ export function onArrival(world, agent) {
         if (seller && home) {
           if (m.barterRes) {
             // Barter: swap goods 1:1
-            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource] - 60),
-                                    agent.cargo[m.barterRes] ?? 0);
+            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource!] - 60),
+                                    agent.cargo[m.barterRes!] ?? 0);
             if (amount > 0) {
-              seller.stock[m.resource] -= amount;
-              deposit(seller, { [m.barterRes]: amount });
-              agent.cargo[m.barterRes] -= amount;
-              agent.cargo[m.resource] += amount;
+              seller.stock[m.resource!] -= amount;
+              deposit(seller, { [m.barterRes!]: amount });
+              agent.cargo[m.barterRes!] -= amount;
+              agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
               if (home.buildings.includes('MARKET_HALL')) {
                 home.gold += Math.round(amount * 0.1);
@@ -152,13 +74,13 @@ export function onArrival(world, agent) {
           } else {
             // Gold purchase
             const unit = m.price ?? ECON.TRADE_PRICE;
-            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource] - 60));
+            const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource!] - 60));
             const price = Math.ceil(amount * unit);
             if (amount > 0 && home.gold >= price) {
-              seller.stock[m.resource] -= amount;
+              seller.stock[m.resource!] -= amount;
               seller.gold += price;
               home.gold -= price;
-              agent.cargo[m.resource] += amount;
+              agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
               if (home.buildings.includes('MARKET_HALL')) {
                 home.gold += Math.round(amount * 0.1);
@@ -187,15 +109,15 @@ export function onArrival(world, agent) {
       if (m.phase === 'out') {
         if (buyer && home) {
           const unit = m.price ?? ECON.TRADE_PRICE;
-          const offered = agent.cargo[m.resource];
+          const offered = agent.cargo[m.resource!];
           const affordable = (home.factionId === buyer.factionId || unit === 0) ? offered : Math.floor(buyer.gold / unit);
           const sold = Math.min(offered, affordable);
           if (sold > 0) {
             const price = home.factionId === buyer.factionId ? 0 : sold * unit;
             buyer.gold -= price;
             home.gold += price;
-            agent.cargo[m.resource] -= sold;
-            deposit(buyer, { [m.resource]: sold });
+            agent.cargo[m.resource!] -= sold;
+            deposit(buyer, { [m.resource!]: sold });
             recordTrade(world, home.factionId, buyer.factionId);
             if (home.buildings.includes('MARKET_HALL')) {
               home.gold += Math.round(sold * 0.1);

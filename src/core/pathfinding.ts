@@ -1,12 +1,15 @@
 // A* pathfinding over the hex grid, weighted by terrain move cost.
 import { TERRAIN, ECON } from './constants.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
+
+type QR = [number, number];
 
 // Returns array of [q,r] from start (exclusive) to goal (inclusive), or null.
-export function findPath(world, sq, sr, gq, gr, isPlanning = false) {
+export function findPath(world: World, sq: number, sr: number, gq: number, gr: number, isPlanning = false): QR[] | null {
   const cacheKey = sq + ',' + sr + ':' + gq + ',' + gr + ':' + isPlanning;
   if (world.pathCache && world.pathCache.has(cacheKey)) {
     const cached = world.pathCache.get(cacheKey);
-    return cached ? cached.map(p => [p[0], p[1]]) : null;
+    return cached ? cached.map((p): QR => [p[0], p[1]]) : null;
   }
 
   const startKey = sq + ',' + sr;
@@ -23,23 +26,23 @@ export function findPath(world, sq, sr, gq, gr, isPlanning = false) {
 
   const open = new MinHeap();
   open.push(0, { q: sq, r: sr, key: startKey });
-  const cameFrom = new Map();
-  const gScore = new Map([[startKey, 0]]);
+  const cameFrom = new Map<string, string>();
+  const gScore = new Map<string, number>([[startKey, 0]]);
 
   while (open.size > 0) {
     const current = open.pop();
     const currentKey = current.key;
     if (currentKey === goalKey) {
-      const path = [];
+      const path: QR[] = [];
       let k = goalKey;
       while (k !== startKey) {
         const [q, r] = k.split(',').map(Number);
-        path.push([q, r]);
-        k = cameFrom.get(k);
+        path.push([q, r] as QR);
+        k = cameFrom.get(k)!;
       }
       const resultPath = path.reverse();
       if (world.pathCache) {
-        world.pathCache.set(cacheKey, resultPath.map(p => [p[0], p[1]]));
+        world.pathCache.set(cacheKey, resultPath.map((p): QR => [p[0], p[1]]));
       }
       return resultPath;
     }
@@ -68,7 +71,7 @@ export function findPath(world, sq, sr, gq, gr, isPlanning = false) {
       if (cost === Infinity) continue;
       if (hex.hasRoad) cost = Math.min(cost, ECON.ROAD_MOVE_COST);
       
-      const tentative = gScore.get(currentKey) + cost;
+      const tentative = gScore.get(currentKey)! + cost;
       if (tentative < (gScore.get(nKey) ?? Infinity)) {
         cameFrom.set(nKey, currentKey);
         gScore.set(nKey, tentative);
@@ -85,10 +88,13 @@ export function findPath(world, sq, sr, gq, gr, isPlanning = false) {
   return null;
 }
 
+interface HeapItem { priority: number; value: any; }
+
 class MinHeap {
+  items: HeapItem[];
   constructor() { this.items = []; }
   get size() { return this.items.length; }
-  push(priority, value) {
+  push(priority: number, value: any) {
     this.items.push({ priority, value });
     let i = this.items.length - 1;
     while (i > 0) {
@@ -104,7 +110,7 @@ class MinHeap {
   }
   pop() {
     const top = this.items[0];
-    const last = this.items.pop();
+    const last = this.items.pop()!;
     if (this.items.length > 0) {
       this.items[0] = last;
       let i = 0;

@@ -8,8 +8,9 @@
 // policyOf() falls back to DEFAULT_POLICY so worlds without a policy (old saves,
 // GA-evolved worlds, hand-built test fixtures) keep working unchanged.
 import { DEFAULT_POLICY } from '../core/constants.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
-export function policyOf(world, factionId) {
+export function policyOf(world: World, factionId: number) {
   const fac = world.factions?.[factionId];
   return fac?.policy ?? DEFAULT_POLICY;
 }

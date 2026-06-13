@@ -1,13 +1,14 @@
 // Settlement lifecycle: founding, tiers, roles, territory, stock helpers.
 import { key, range } from '../core/hex.js';
 import { TIERS, ROLES, GOALS, ECON, BUILDINGS } from '../core/constants.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
 const NAME_PARTS_A = ['Ald', 'Bren', 'Cor', 'Dun', 'Eld', 'Fen', 'Gold', 'Hav', 'Iron', 'Karn', 'Lor', 'Mer', 'Nor', 'Oak', 'Pell', 'Quill', 'Rav', 'Stone', 'Thorn', 'Vale'];
 const NAME_PARTS_B = ['burg', 'dale', 'ford', 'haven', 'holm', 'mark', 'mere', 'stead', 'ton', 'wick'];
 
-export function foundSettlement(world, factionId, q, r, startPop) {
+export function foundSettlement(world: World, factionId: number, q: number, r: number, startPop: number) {
   const id = world.nextId++;
-  const s = {
+  const s: Settlement = {
     id, factionId, q, r,
     name: world.rng.pick(NAME_PARTS_A) + world.rng.pick(NAME_PARTS_B),
     tier: 'VILLAGE',
@@ -30,7 +31,7 @@ export function foundSettlement(world, factionId, q, r, startPop) {
   return s;
 }
 
-export function claimTerritory(world, s) {
+export function claimTerritory(world: World, s: Settlement): void {
   world.bordersDirty = true;
   const radius = TIERS[s.tier].radius;
   const myTierVal = s.tier === 'CITY' ? 3 : s.tier === 'TOWN' ? 2 : 1;
@@ -52,7 +53,7 @@ export function claimTerritory(world, s) {
   }
 }
 
-export function controlledHexes(world, s) {
+export function controlledHexes(world: World, s: Settlement): Hex[] {
   if (!s._controlledHexes || world.bordersDirty) {
     s._controlledHexes = [];
     const radius = TIERS[s.tier].radius;
@@ -64,10 +65,10 @@ export function controlledHexes(world, s) {
   return s._controlledHexes;
 }
 
-export function computeRole(world, s) {
+export function computeRole(world: World, s: Settlement): Role {
   const hexes = controlledHexes(world, s);
   if (hexes.length === 0) return ROLES.GENERAL;
-  const counts = { FOREST: 0, HILLS: 0, MOUNTAINS: 0, PLAINS: 0, WATER: 0 };
+  const counts: Record<string, number> = { FOREST: 0, HILLS: 0, MOUNTAINS: 0, PLAINS: 0, WATER: 0 };
   for (const h of hexes) counts[h.terrain]++;
   const n = hexes.length;
   if (counts.FOREST / n > 0.30) return ROLES.LUMBER;
@@ -76,15 +77,16 @@ export function computeRole(world, s) {
   return ROLES.GENERAL;
 }
 
-export function storageCap(s) {
+export function storageCap(s: Settlement): number {
   let cap = ECON.BASE_STORAGE;
   for (const b of s.buildings) {
-    if (BUILDINGS[b]?.capacityBonus) cap += BUILDINGS[b].capacityBonus;
+    const bdef = (BUILDINGS as Record<string, any>)[b];
+    if (bdef?.capacityBonus) cap += bdef.capacityBonus;
   }
   return cap;
 }
 
-export function canAfford(s, cost) {
+export function canAfford(s: Settlement, cost: Record<string, number>) {
   for (const [res, amt] of Object.entries(cost)) {
     const have = res === 'gold' ? s.gold : s.stock[res] ?? 0;
     if (have < amt) return false;
@@ -92,25 +94,25 @@ export function canAfford(s, cost) {
   return true;
 }
 
-export function pay(s, cost) {
+export function pay(s: Settlement, cost: Record<string, number>) {
   for (const [res, amt] of Object.entries(cost)) {
     if (res === 'gold') s.gold -= amt;
     else s.stock[res] -= amt;
   }
 }
 
-export function deposit(s, cargo) {
+export function deposit(s: Settlement, cargo: Record<string, number>) {
   const cap = storageCap(s);
   for (const [res, amt] of Object.entries(cargo)) {
     if (amt > 0) s.stock[res] = Math.min(cap, (s.stock[res] ?? 0) + amt);
   }
 }
 
-export function settlementAt(world, q, r) {
+export function settlementAt(world: World, q: number, r: number): Settlement | undefined {
   return world.settlements.find(s => s.q === q && s.r === r);
 }
 
-export function log(world, msg) {
+export function log(world: World, msg: string) {
   world.log.push({ tick: world.tick, msg });
   if (world.log.length > 200) world.log.shift();
 }

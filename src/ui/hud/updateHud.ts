@@ -1,22 +1,24 @@
 // Observer HUD: faction overview, inspector panel, event log.
-import { TERRAIN, TIERS } from '../core/constants.js';
-import { summarize } from '../sim/gameLoop.js';
-import { stateOf, getRelation } from '../sim/diplomacy.js';
-import { settlementAt, controlledHexes, storageCap } from '../sim/settlement.js';
+import { TERRAIN, TIERS } from '../../core/constants.js';
+import { summarize } from '../../sim/gameLoop.js';
+import { stateOf, getRelation } from '../../sim/diplomacy.js';
+import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
+import { drawChart } from './chart.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
-const fmt = n => Math.round(n);
+const fmt = (n: number) => Math.round(n);
 
 let eventFilter = 'all';
 let filterBound = false;
-let lastWorld = null;
-let lastSelected = null;
+let lastWorld: any = null;
+let lastSelected: any = null;
 
 function bindFilterEvents() {
   if (filterBound) return;
-  const buttons = document.querySelectorAll('.event-filter');
+  const buttons = document.querySelectorAll<HTMLElement>('.event-filter');
   buttons.forEach(btn => {
     btn.addEventListener('click', () => {
-      eventFilter = btn.dataset.filter;
+      eventFilter = btn.dataset.filter!;
       buttons.forEach(b => b.classList.toggle('active', b === btn));
       if (lastWorld) updateHud(lastWorld, lastSelected);
     });
@@ -24,11 +26,11 @@ function bindFilterEvents() {
   filterBound = true;
 }
 
-export function updateHud(world, selected) {
+export function updateHud(world: World, selected: any) {
   lastWorld = world;
   lastSelected = selected;
   bindFilterEvents();
-  document.getElementById('tick').textContent = `Tick ${world.tick}`;
+  document.getElementById('tick')!.textContent = `Tick ${world.tick}`;
 
   // Faction overview
   const summaries = summarize(world);
@@ -50,7 +52,7 @@ export function updateHud(world, selected) {
 
     const focus = fac.focus ?? 'PEACE';
     const focusColors = { WAR: '#e74c3c', MOBILIZE: '#f1c40f', PEACE: '#2ecc71' };
-    const focusBadgeColor = focusColors[focus] ?? '#2ecc71';
+    const focusBadgeColor = (focusColors as Record<string, string>)[focus] ?? '#2ecc71';
     const focusHtml = `<span style="font-size: 8px; padding: 1px 4px; border-radius: 4px; background: ${focusBadgeColor}22; border: 1px solid ${focusBadgeColor}; color: ${focusBadgeColor}; font-weight: bold; margin-left: auto;">${focus}</span>`;
 
     // Vassal badge for living vassals
@@ -97,8 +99,8 @@ export function updateHud(world, selected) {
       for (let b = a + 1; b < world.factions.length; b++) {
         if (world.factions[a].eliminated || world.factions[b].eliminated) continue;
         const st = stateOf(world, a, b);
-        diploRows += `<div style="color:${colors[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">
-          <span>${icons[st]} <b>${world.factions[a].name}</b>–<b>${world.factions[b].name}</b></span>
+        diploRows += `<div style="color:${(colors as Record<string, string>)[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">
+          <span>${(icons as Record<string, string>)[st]} <b>${world.factions[a].name}</b>–<b>${world.factions[b].name}</b></span>
           <span class="logtick">${st.toLowerCase()} ${Math.round(getRelation(world, a, b))}</span></div>`;
       }
     }
@@ -125,20 +127,20 @@ export function updateHud(world, selected) {
       activeWarsHtml += `</div>`;
     }
   }
-  document.getElementById('factions').innerHTML = rows + (diploRows ? '<hr>' + diploRows : '') + (activeWarsHtml ? '<hr>' + activeWarsHtml : '');
+  document.getElementById('factions')!.innerHTML = rows + (diploRows ? '<hr>' + diploRows : '') + (activeWarsHtml ? '<hr>' + activeWarsHtml : '');
   drawChart(world);
 
   // Inspector
-  const panel = document.getElementById('inspector');
+  const panel = document.getElementById('inspector')!;
   if (!selected) { panel.innerHTML = '<i>Click a hex to inspect</i>'; }
   else {
     const hex = selected;
-    const t = TERRAIN[hex.terrain];
+    const t = (TERRAIN as Record<string, any>)[hex.terrain];
     const settlement = settlementAt(world, hex.q, hex.r);
     const owner = hex.owner !== null ? world.settlements.find(s => s.id === hex.owner) : null;
     let html = `<b>${t.name}</b> (${hex.q}, ${hex.r})<br>`;
     html += `Move cost: ${t.moveCost === Infinity ? '—' : t.moveCost}<br>`;
-    const piles = Object.entries(hex.resources).filter(([, v]) => v >= 1)
+    const piles = Object.entries(hex.resources as Record<string, number>).filter(([, v]) => v >= 1)
       .map(([k, v]) => `${k} ${fmt(v)}`).join(', ');
     if (piles) html += `<b>On hex:</b> ${piles}<br>`;
     if (hex.building) html += `Building: ${hex.building} (${fmt(hex.buildingIntegrity)}%)<br>`;
@@ -180,7 +182,7 @@ export function updateHud(world, selected) {
     });
   }
 
-  document.getElementById('log').innerHTML = filteredLog.slice(-12).reverse()
+  document.getElementById('log')!.innerHTML = filteredLog.slice(-12).reverse()
     .map(e => {
       let badge = '⚱';
       let color = '#dfe6ee';
@@ -198,92 +200,4 @@ export function updateHud(world, selected) {
           <span class="logtext" style="color:${color === '#95a5a6' ? '#8fa3bd' : '#e2e8f0'}">${e.msg}</span>
         </div>`;
     }).join('');
-}
-
-
-// --- History chart ---
-let chartMetric = 'pop';
-for (const btn of document.querySelectorAll('[data-metric]')) {
-  btn.addEventListener('click', () => {
-    chartMetric = btn.dataset.metric;
-    document.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('active', b === btn));
-  });
-}
-
-function drawChart(world) {
-  const canvas = document.getElementById('chart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const { width: w, height: h } = canvas;
-  ctx.clearRect(0, 0, w, h);
-  const samples = world.history?.samples ?? [];
-  if (samples.length < 2) {
-    ctx.fillStyle = '#6c7f99';
-    ctx.font = '11px sans-serif';
-    ctx.fillText('Gathering history…', 8, h / 2);
-    return;
-  }
-
-  // Draw war background bands first, before grid and lines!
-  samples.forEach((s, i) => {
-    if (s.war) {
-      const x = (i / (samples.length - 1)) * (w - 4) + 2;
-      const stripWidth = Math.max(1.5, (w - 4) / (samples.length - 1));
-      ctx.fillStyle = 'rgba(231, 76, 60, 0.15)'; // light red
-      ctx.fillRect(x - stripWidth / 2, 12, stripWidth + 0.5, h - 16);
-    }
-  });
-
-  let max = 1;
-  for (const s of samples) for (const f of s.f) max = Math.max(max, f[chartMetric]);
-
-  // Grid: quarter lines
-  ctx.strokeStyle = '#2c3a50';
-  ctx.lineWidth = 1;
-  for (let g = 1; g <= 3; g++) {
-    const gy = h - (g / 4) * (h - 14) - 4;
-    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
-  }
-
-  world.factions.forEach((fac, fi) => {
-    // Keep plotting curves of eliminated factions, they naturally drop to 0.
-
-    // Gradient fill under the line
-    ctx.fillStyle = fac.color + '18'; // ~10% opacity
-    ctx.beginPath();
-    ctx.moveTo(2, h - 4);
-    samples.forEach((s, i) => {
-      const x = (i / (samples.length - 1)) * (w - 4) + 2;
-      const y = h - 4 - (s.f[fi][chartMetric] / max) * (h - 18);
-      ctx.lineTo(x, y);
-    });
-    ctx.lineTo((samples.length - 1) / (samples.length - 1) * (w - 4) + 2, h - 4);
-    ctx.closePath();
-    ctx.fill();
-
-    // Line drawing with subtle shadow blur
-    ctx.strokeStyle = fac.color;
-    ctx.lineWidth = 1.8;
-    ctx.shadowColor = fac.color;
-    ctx.shadowBlur = 3;
-    ctx.beginPath();
-    samples.forEach((s, i) => {
-      const x = (i / (samples.length - 1)) * (w - 4) + 2;
-      const y = h - 4 - (s.f[fi][chartMetric] / max) * (h - 18);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-    
-    // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-  });
-
-  ctx.fillStyle = '#8fa3bd';
-  ctx.font = "bold 9px 'Inter', sans-serif";
-  ctx.textAlign = 'left';
-  ctx.fillText(String(Math.round(max)), 3, 11);
-  ctx.textAlign = 'right';
-  ctx.fillText(`t${samples[0].t}–t${samples[samples.length - 1].t}`, w - 3, 11);
-  ctx.textAlign = 'left';
 }

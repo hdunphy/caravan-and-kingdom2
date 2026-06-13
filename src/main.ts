@@ -5,9 +5,10 @@ import { makeCamera } from './ui/camera.js';
 import { render, HEX_SIZE } from './ui/renderer.js';
 import { updateHud } from './ui/hud.js';
 import { pixelToHex, key } from './core/hex.js';
+import type { World } from './types.js';
 
-const canvas = document.getElementById('map');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById('map') as HTMLCanvasElement;
+const ctx = canvas.getContext('2d')!;
 
 function resize() {
   canvas.width = canvas.clientWidth;
@@ -20,10 +21,10 @@ const params = new URLSearchParams(location.search);
 const seed = parseInt(params.get('seed') ?? '42', 10);
 let world = generateWorld(seed, 24, 4);
 
-let evolvedTraits = null;
+let evolvedTraits: any = null;
 let selectedPlaystyle = 'default';
 
-function applyPlaystyle(w) {
+function applyPlaystyle(w: World) {
   if (selectedPlaystyle === 'evolved' && evolvedTraits) {
     for (const fid of Object.keys(evolvedTraits)) {
       const fIdx = parseInt(fid, 10);
@@ -47,7 +48,7 @@ fetch('./evolved_traits.json')
 const select = document.getElementById('playstyle-select');
 if (select) {
   select.addEventListener('change', e => {
-    selectedPlaystyle = e.target.value;
+    selectedPlaystyle = (e.target as HTMLSelectElement).value;
     world = generateWorld(world.seed, 24, 4);
     applyPlaystyle(world);
     selected = null;
@@ -56,11 +57,11 @@ if (select) {
 }
 
 const cam = makeCamera(canvas);
-let selected = null;
+let selected: any = null;
 let speed = 1; // ticks per frame; 0 = paused
 
 // Tab switching logic
-document.querySelectorAll('.tab-button').forEach(btn => {
+document.querySelectorAll<HTMLElement>('.tab-button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b === btn));
     const targetTab = btn.dataset.tab;
@@ -78,17 +79,17 @@ canvas.addEventListener('click', e => {
   selected = world.hexes.get(key(q, r)) ?? null;
 
   // Auto-focus the Inspector tab
-  const inspectorTabButton = document.querySelector('[data-tab="inspector-tab"]');
+  const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
   if (inspectorTabButton) inspectorTabButton.click();
 });
 
-for (const btn of document.querySelectorAll('[data-speed]')) {
+for (const btn of document.querySelectorAll<HTMLElement>('[data-speed]')) {
   btn.addEventListener('click', () => {
     speed = Number(btn.dataset.speed);
     document.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('active', b === btn));
   });
 }
-document.getElementById('reseed').addEventListener('click', () => {
+document.getElementById('reseed')!.addEventListener('click', () => {
   world = generateWorld(Math.floor(Math.random() * 1e9), 24, 4);
   applyPlaystyle(world);
   selected = null;
@@ -99,7 +100,7 @@ const BASE_TPS = 8;
 let last = performance.now();
 let acc = 0;
 let hudTimer = 0;
-function frame(now) {
+function frame(now: number) {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
   acc += dt * BASE_TPS * speed;
