@@ -84,7 +84,7 @@ export function storageCap(s) {
   return cap;
 }
 
-export function canAfford(s, cost) {
+export function canAfford(s, cost: Record<string, number>) {
   for (const [res, amt] of Object.entries(cost)) {
     const have = res === 'gold' ? s.gold : s.stock[res] ?? 0;
     if (have < amt) return false;
@@ -92,14 +92,14 @@ export function canAfford(s, cost) {
   return true;
 }
 
-export function pay(s, cost) {
+export function pay(s, cost: Record<string, number>) {
   for (const [res, amt] of Object.entries(cost)) {
     if (res === 'gold') s.gold -= amt;
     else s.stock[res] -= amt;
   }
 }
 
-export function deposit(s, cargo) {
+export function deposit(s, cargo: Record<string, number>) {
   const cap = storageCap(s);
   for (const [res, amt] of Object.entries(cargo)) {
     if (amt > 0) s.stock[res] = Math.min(cap, (s.stock[res] ?? 0) + amt);

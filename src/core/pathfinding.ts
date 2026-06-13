@@ -85,7 +85,10 @@ export function findPath(world, sq, sr, gq, gr, isPlanning = false) {
   return null;
 }
 
+interface HeapItem { priority: number; value: any; }
+
 class MinHeap {
+  items: HeapItem[];
   constructor() { this.items = []; }
   get size() { return this.items.length; }
   push(priority, value) {
