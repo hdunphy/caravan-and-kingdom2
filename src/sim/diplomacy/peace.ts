@@ -106,3 +106,6 @@ export function makePeace(world: World, war: War, loser: number) {
   for (const s of world.settlements) { s.siegeHp = null; s.siegePop0 = null; s.siegeDeaths = 0; }
 }
 
+export function sueForPeace(world: World, war: War, factionId: number) {
+  makePeace(world, war, factionId);
+}

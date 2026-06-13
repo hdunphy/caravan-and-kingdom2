@@ -88,11 +88,17 @@ export function updateHud(world: World, selected: any) {
       vassalHtml = `<span style="font-size: 8px; padding: 1px 4px; border-radius: 4px; background: #8b572a22; border: 1px solid #8b572a; color: #c68642; font-weight: bold; margin-left: 4px;">VASSAL · ${masterName}</span>`;
     }
 
+    const isPlayer = i === world.playerFactionId;
+    const nameColor = isPlayer ? '#ffd700' : fac.color;
+    const nameStyle = isPlayer ? `color:${nameColor}; font-weight:800; text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);` : `color:${nameColor}; font-weight:700;`;
+    const playerBadge = isPlayer ? `<span style="font-size: 8px; padding: 1px 4px; border-radius: 4px; background: #ffd70022; border: 1px solid #ffd700; color: #ffd700; font-weight: bold; margin-left: 4px;">YOU</span>` : '';
+
     return `
-    <div class="faction-row">
+    <div class="faction-row" ${isPlayer ? 'style="border-color: rgba(255, 215, 0, 0.3); background: rgba(255, 215, 0, 0.05);"' : ''}>
       <div class="faction-header" style="display: flex; align-items: center; width: 100%;">
         <span class="swatch" style="color:${fac.color}; background:${fac.color}; box-shadow: 0 0 8px ${fac.color}"></span>
-        <span style="color:${fac.color}; font-weight:700;">${f.faction}</span>
+        <span style="${nameStyle}">${f.faction}</span>
+        ${playerBadge}
         <span class="persona" style="margin-left: 6px;">${fac.persona ?? ''}</span>
         ${focusHtml}
         ${vassalHtml}
@@ -139,14 +145,22 @@ export function updateHud(world: World, selected: any) {
         const exhA = Math.round(w.exh[w.a]);
         const exhB = Math.round(w.exh[w.b]);
         const duration = world.tick - w.since;
+        const isPlayerWar = world.playerFactionId === w.a || world.playerFactionId === w.b;
+        
+        let peaceBtn = '';
+        if (isPlayerWar) {
+          peaceBtn = `<button class="sue-peace-btn" data-a="${w.a}" data-b="${w.b}" style="font-size: 8px; padding: 2px 4px; background: #e74c3c; color: white; border: none; border-radius: 3px; cursor: pointer; margin-top: 4px;">Sue for Peace</button>`;
+        }
+
         activeWarsHtml += `
           <div style="font-size: 11px; background: rgba(231, 76, 60, 0.08); border: 1px solid rgba(231, 76, 60, 0.15); border-radius: 4px; padding: 4px 6px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <span style="color:#e74c3c; font-weight:700;">⚔ ${facA.name} vs ${facB.name}</span>
               <span style="color:#8fa3bd; font-size: 8px;">t${w.since} (+${duration})</span>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size: 9px; color:#8fa3bd; margin-top:1px;">
+            <div style="display:flex; justify-content:space-between; font-size: 9px; color:#8fa3bd; margin-top:1px; align-items: center;">
               <span>Exhaustion: <b>${exhA}%</b> vs <b>${exhB}%</b></span>
+              ${peaceBtn}
             </div>
           </div>`;
       }
@@ -155,6 +169,29 @@ export function updateHud(world: World, selected: any) {
   }
   document.getElementById('factions')!.innerHTML = rows + (diploRows ? '<hr>' + diploRows : '') + (activeWarsHtml ? '<hr>' + activeWarsHtml : '');
   drawChart(world);
+
+  // Sync Policy Sliders
+  if (world.playerFactionId !== undefined && world.factions[world.playerFactionId]) {
+    const p = world.factions[world.playerFactionId].policy!;
+    const updateSlider = (id: string, val: number) => {
+      const el = document.getElementById(`policy-${id}`) as HTMLInputElement;
+      const valEl = document.getElementById(`policy-${id}-val`);
+      if (el && valEl && document.activeElement !== el) {
+        el.value = val.toString();
+        valEl.textContent = val.toFixed(1);
+      }
+    };
+    updateSlider('expansion', p.expansion);
+    updateSlider('trade', p.tradeStance);
+    updateSlider('recruit', p.recruitment);
+    updateSlider('garrison', p.garrison);
+    updateSlider('tax', p.taxRate);
+    updateSlider('rations', p.rations);
+    const stanceEl = document.getElementById('policy-stance') as HTMLInputElement;
+    if (stanceEl && document.activeElement !== stanceEl) {
+      stanceEl.checked = p.militaryStance === 'AGGRESSIVE';
+    }
+  }
 
   // Inspector
   const panel = document.getElementById('inspector')!;

@@ -6,6 +6,7 @@ import { render, HEX_SIZE } from './ui/renderer.js';
 import { updateHud } from './ui/hud.js';
 import { pixelToHex, key } from './core/hex.js';
 import { saveWorld, loadWorld } from './sim/serialize.js';
+import { makePeace } from './sim/diplomacy.js';
 import type { World } from './types.js';
 
 const canvas = document.getElementById('map') as HTMLCanvasElement;
@@ -108,6 +109,45 @@ document.getElementById('reseed')!.addEventListener('click', () => {
   applyPlaystyle(world);
   selected = null;
 });
+
+document.getElementById('factions')!.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement;
+  if (target.classList.contains('sue-peace-btn')) {
+    const a = parseInt(target.dataset.a!);
+    const b = parseInt(target.dataset.b!);
+    const war = world.diplo?.wars.find(w => w.a === a && w.b === b);
+    if (war && world.playerFactionId !== undefined) {
+      makePeace(world, war, world.playerFactionId);
+      updateHud(world, selected);
+    }
+  }
+});
+
+// Wire up Policy sliders
+const policyInputs = ['expansion', 'trade', 'recruit', 'garrison', 'tax', 'rations'];
+for (const key of policyInputs) {
+  const el = document.getElementById(`policy-${key}`) as HTMLInputElement;
+  const valEl = document.getElementById(`policy-${key}-val`);
+  if (el && valEl) {
+    el.addEventListener('input', () => {
+      valEl.textContent = el.value;
+      if (world.playerFactionId !== undefined && world.factions[world.playerFactionId]) {
+        const p = world.factions[world.playerFactionId].policy!;
+        if (key === 'recruit') p.recruitment = parseFloat(el.value);
+        else if (key === 'trade') p.tradeStance = parseFloat(el.value);
+        else (p as any)[key] = parseFloat(el.value);
+      }
+    });
+  }
+}
+const stanceEl = document.getElementById('policy-stance') as HTMLInputElement;
+if (stanceEl) {
+  stanceEl.addEventListener('change', () => {
+    if (world.playerFactionId !== undefined && world.factions[world.playerFactionId]) {
+      world.factions[world.playerFactionId].policy!.militaryStance = stanceEl.checked ? 'AGGRESSIVE' : 'DEFENSIVE';
+    }
+  });
+}
 
 document.getElementById('save-btn')!.addEventListener('click', () => {
   const json = saveWorld(world);

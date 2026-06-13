@@ -321,13 +321,75 @@
       </select>
     </div>
     <div class="tab-container">
-      <button class="tab-button active" data-tab="factions-tab">Kingdoms</button>
+      <button class="tab-button" data-tab="factions-tab">Kingdoms</button>
+      <button class="tab-button active" data-tab="policy-tab">Policy</button>
       <button class="tab-button" data-tab="history-tab">Analytics</button>
       <button class="tab-button" data-tab="inspector-tab">Inspector</button>
       <button class="tab-button" data-tab="events-tab">Chronicle</button>
     </div>
 
-    <div id="factions-tab" class="tab-content active">
+    <div id="policy-tab" class="tab-content active">
+      <div class="panel">
+        <h2>State Policy</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Expansion Focus</label>
+              <span id="policy-expansion-val" style="color:#f3d17c; font-size:11px;">1.0</span>
+            </div>
+            <input type="range" id="policy-expansion" min="0.1" max="3.0" step="0.1" value="1.0" style="width: 100%;">
+            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Higher values encourage rapid new settlements.</div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Trade Stance</label>
+              <span id="policy-trade-val" style="color:#f3d17c; font-size:11px;">1.0</span>
+            </div>
+            <input type="range" id="policy-trade" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 100%;">
+            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">0 = Autarky. High values increase exports and imports.</div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Military Recruitment</label>
+              <span id="policy-recruit-val" style="color:#f3d17c; font-size:11px;">1.0</span>
+            </div>
+            <input type="range" id="policy-recruit" min="0.1" max="3.0" step="0.1" value="1.0" style="width: 100%;">
+            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Shifts labor pool towards soldiers.</div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Garrison Size</label>
+              <span id="policy-garrison-val" style="color:#f3d17c; font-size:11px;">1.0</span>
+            </div>
+            <input type="range" id="policy-garrison" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 100%;">
+            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Standing army size during peacetime.</div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Tax Rate</label>
+              <span id="policy-tax-val" style="color:#f3d17c; font-size:11px;">1.0</span>
+            </div>
+            <input type="range" id="policy-tax" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 100%;">
+            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Income multiplier. High taxes hurt population growth.</div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Food Rations</label>
+              <span id="policy-rations-val" style="color:#f3d17c; font-size:11px;">1.0</span>
+            </div>
+            <input type="range" id="policy-rations" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 100%;">
+            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Food consumed per capita. Lowering hurts growth.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="policy-stance" style="cursor:pointer;">
+            <label for="policy-stance" style="color:#cbd5e1; font-size:11px; font-weight:600; cursor:pointer;">Aggressive Military Stance</label>
+          </div>
+          <div style="font-size:9px; color:#6c7f99;">Focuses warfare on raiding rather than sieges.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="factions-tab" class="tab-content">
       <div class="panel"><h2>Factions</h2><div id="factions"></div></div>
     </div>
     
