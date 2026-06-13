@@ -1,7 +1,7 @@
 // ---------- Combat (every tick) ----------
 import { key, distance } from '../../core/hex.js';
 import { DIPLO, ECON, TERRAIN } from '../../core/constants.js';
-import { log, deposit, controlledHexes, storageCap } from '../settlement.js';
+import { log, deposit, controlledHexes, storageCap, pushAlert } from '../settlement.js';
 import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
