@@ -22,6 +22,7 @@
     height: 100vh;
     display: block;
     cursor: grab;
+    position: relative;
   }
   #map:active {
     cursor: grabbing;
@@ -298,7 +299,17 @@
 </style>
 </head>
 <body>
-  <div id="alerts-panel" style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10;"></div>
+  <div id="alerts-panel" style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none;"></div>
+  
+  <div id="lens-controls" style="position: absolute; bottom: 20px; left: 20px; z-index: 10; display: flex; gap: 4px; background: rgba(13, 18, 27, 0.85); backdrop-filter: blur(12px); padding: 6px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);">
+    <button class="lens-btn active" data-lens="none" style="padding: 4px 8px; font-size: 10px;">No Lens</button>
+    <button class="lens-btn" data-lens="owner" style="padding: 4px 8px; font-size: 10px;">Territory</button>
+    <button class="lens-btn" data-lens="danger" style="padding: 4px 8px; font-size: 10px;">Danger</button>
+    <button class="lens-btn" data-lens="wealth" style="padding: 4px 8px; font-size: 10px;">Wealth</button>
+  </div>
+
+  <div id="settlement-card" style="display: none; position: absolute; z-index: 20; pointer-events: auto; background: rgba(20, 27, 43, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; font-size: 11px; width: 240px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translate(-50%, -100%); margin-top: -15px;"></div>
+
   <canvas id="map"></canvas>
   <div id="sidebar">
     <h1>⚜ Caravan & Kingdom</h1>
@@ -321,14 +332,44 @@
       </select>
     </div>
     <div class="tab-container">
+      <button class="tab-button active" data-tab="realm-tab">Realm</button>
       <button class="tab-button" data-tab="factions-tab">Kingdoms</button>
-      <button class="tab-button active" data-tab="policy-tab">Policy</button>
+      <button class="tab-button" data-tab="policy-tab">Policy</button>
       <button class="tab-button" data-tab="history-tab">Analytics</button>
       <button class="tab-button" data-tab="inspector-tab">Inspector</button>
       <button class="tab-button" data-tab="events-tab">Chronicle</button>
     </div>
 
-    <div id="policy-tab" class="tab-content active">
+    <div id="realm-tab" class="tab-content active">
+      <div id="realm-observer-empty" style="display:none; text-align:center; padding: 20px; color: #8fa3bd; font-size: 11px; font-style: italic; background:rgba(0,0,0,0.25); border: 1px dashed rgba(255,255,255,0.05); border-radius:8px;">
+        Observers have no realm.
+      </div>
+      <div class="panel" id="realm-panel">
+        <h2>Empire Summary</h2>
+        <div id="realm-header" style="display:flex; justify-content:space-between; font-size:10px; color:#cbd5e1; background:rgba(0,0,0,0.2); padding:6px; border-radius:4px; margin-bottom: 8px; flex-wrap:wrap; gap:4px;">
+          <!-- Populated by JS -->
+        </div>
+        <div style="overflow-x: auto; margin-top: 8px;">
+          <table id="realm-table" style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #8fa3bd;">
+                <th style="padding: 4px; cursor: pointer;" data-sort="name">Name</th>
+                <th style="padding: 4px; cursor: pointer;" data-sort="tier">Tier</th>
+                <th style="padding: 4px; cursor: pointer;" data-sort="pop">Pop</th>
+                <th style="padding: 4px; cursor: pointer;" data-sort="food">Food</th>
+                <th style="padding: 4px; cursor: pointer;" data-sort="income">Income</th>
+                <th style="padding: 4px; cursor: pointer;" data-sort="focus">Focus</th>
+              </tr>
+            </thead>
+            <tbody id="realm-tbody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="policy-tab" class="tab-content">
       <div id="policy-observer-empty" style="display:none; text-align:center; padding: 20px; color: #8fa3bd; font-size: 11px; font-style: italic; background:rgba(0,0,0,0.25); border: 1px dashed rgba(255,255,255,0.05); border-radius:8px;">
         Observers cannot dictate state policy.<br>Click a kingdom's <b>Declare War</b> button to seize control, or use the <b>↻ Reseed</b> button.
       </div>

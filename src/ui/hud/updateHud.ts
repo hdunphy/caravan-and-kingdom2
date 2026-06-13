@@ -5,6 +5,7 @@ import { stateOf, getRelation, strengthOf } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
 import { getPolicyLabels } from './policyLabels.js';
+import { renderRealmTab } from './realm.js';
 import { policyOf } from '../../sim/policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
@@ -35,6 +36,8 @@ export function updateHud(world: World, selected: any) {
   lastSelected = selected;
   bindFilterEvents();
   document.getElementById('tick')!.textContent = `Tick ${world.tick}`;
+  
+  renderRealmTab(world);
 
   // Alerts rendering
   const alertsPanel = document.getElementById('alerts-panel');
@@ -278,18 +281,13 @@ export function updateHud(world: World, selected: any) {
       html += `<hr><b style="color:${fac.color}">${s.name}</b> — ${TIERS[s.tier].name} of ${fac.name}<br>`;
       // Calculate net gold
       const taxRate = policyOf(world, s.factionId).taxRate;
-      const taxes = s.population * ECON.TAX_PER_POP * taxRate;
+      const taxes = s.population * ECON.GOLD_INCOME_PER_POP * taxRate;
       const soldiers = world.agents.filter(a => a.homeId === s.id && a.type === 'soldier');
       const wages = soldiers.length * DIPLO.WAGE_SOLDIER;
       
-      const built = controlledHexes(world, s).filter(h => h.building).map(h => h.building);
+      const built = controlledHexes(world, s).map(h => h.building).filter((b): b is string => b !== null);
       const all = [...built, ...s.buildings];
-      let upkeep = 0;
-      for (const b of all) {
-        if (b === 'MARKET_HALL') upkeep += BUILDINGS.MARKET_HALL.upkeep;
-        if (b === 'FISHERY') upkeep += BUILDINGS.FISHERY.upkeep;
-        if (b === 'WAREHOUSE') upkeep += BUILDINGS.WAREHOUSE.upkeep;
-      }
+      const upkeep = all.length * ECON.BUILDING_UPKEEP_GOLD;
       const net = taxes - wages - upkeep;
       const netStr = net >= 0 ? `+${net.toFixed(1)}/t` : `${net.toFixed(1)}/t`;
       const netColor = net >= 0 ? '#2ecc71' : '#e74c3c';
@@ -299,7 +297,9 @@ export function updateHud(world: World, selected: any) {
       html += `<b>Stock</b> (cap ${storageCap(s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
       if (all.length) {
         const counts: Record<string, number> = {};
-        for (const b of all) counts[b] = (counts[b] || 0) + 1;
+        for (const b of all) {
+          if (b) counts[b] = (counts[b] || 0) + 1;
+        }
         const consolidated = Object.entries(counts).map(([b, c]) => c > 1 ? `${b} x${c}` : b);
         html += `Buildings: ${consolidated.join(', ')}<br>`;
       }

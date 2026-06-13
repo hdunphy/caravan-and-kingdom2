@@ -437,7 +437,7 @@ export function courtSystem(world: World) {
 
     // B. Tribute payment & Annexation (faction-level, not per-settlement)
     if (masterSettlements.length > 0) {
-      const totalTribute = Math.floor(Math.max(0, treasuryOf(world, fac.id)) * DIPLO.TRIBUTE_RATE);
+      const totalTribute = Math.floor(Math.max(0, treasuryOf(world, fac.id)) * DIPLO.VASSAL_TRIBUTE_PCT);
       if (totalTribute > 0) {
         spendGold(world, fac.id, totalTribute);
         addGold(world, masterFac.id, totalTribute);

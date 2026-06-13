@@ -1,6 +1,7 @@
 // Canvas renderer: hex map, territory borders, buildings, resource piles, agents.
 import { hexToPixel, hexCorners, HEX_DIRS, key } from '../core/hex.js';
 import { TERRAIN, TIERS } from '../core/constants.js';
+import { activeLens } from '../main.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
 export const HEX_SIZE = 26;
@@ -50,8 +51,10 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
         const color = factionColor(myFactionId);
 
         // Fill territory tint
-        ctx.fillStyle = color + '30';
-        ctx.fill();
+        if (activeLens === 'none' || activeLens === 'owner') {
+          ctx.fillStyle = color + '30';
+          ctx.fill();
+        }
 
         // Contiguous borders: check each neighbor direction
         const dirToEdge = [0, 5, 4, 3, 2, 1];
@@ -113,6 +116,23 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
         ctx.beginPath();
         ctx.arc(px, py, r, 0, Math.PI * 2);
         ctx.fill();
+      }
+    }
+
+    // Lens overlays
+    if (activeLens === 'wealth') {
+      const total = hex.resources.food + hex.resources.timber + hex.resources.stone + hex.resources.ore;
+      if (total > 0) {
+        ctx.fillStyle = `rgba(241, 196, 15, ${Math.min(0.6, total / 30)})`;
+        ctx.fill();
+      }
+    } else if (activeLens === 'danger') {
+      if (hex.owner !== null) {
+        const owner = settlementById.get(hex.owner);
+        if (owner && owner.siegeHp != null) {
+          ctx.fillStyle = 'rgba(231, 76, 60, 0.4)';
+          ctx.fill();
+        }
       }
     }
 
