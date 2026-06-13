@@ -1,7 +1,7 @@
 // World generation: fBm value-noise island with elevation + moisture layers.
 import { makeRng } from '../core/rng.js';
 import { key, range, distance, hexToPixel, neighbors } from '../core/hex.js';
-import { TERRAIN, FACTIONS, DEFAULT_POLICY } from '../core/constants.js';
+import { TERRAIN, FACTIONS, DEFAULT_POLICY, ECON } from '../core/constants.js';
 import { foundSettlement } from './settlement.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
