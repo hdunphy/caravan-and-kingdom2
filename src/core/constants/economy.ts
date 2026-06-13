@@ -49,6 +49,9 @@ export const ECON = {
   ROAD_CAP_PER_RADIUS: 2.5,    // max LOCAL roads a settlement supports = radius * this
   ROAD_MOVE_COST: 0.4,         // movement cost on a road (plains are 1.0)
   EXPAND_MIN_POP: 25,
+  DEBT_DEATH: 1000,
+  DEBT_AUSTERITY: 350,
+  DEBT_DECAY_BASE: 0.1,
   UPGRADE_TRIGGER_POP: 0.8,
   EXPAND_SEARCH_RADIUS: 12,
   EXPAND_MIN_DIST: 5,

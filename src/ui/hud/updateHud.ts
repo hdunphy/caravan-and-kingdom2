@@ -1,10 +1,12 @@
 // Observer HUD: faction overview, inspector panel, event log.
-import { TERRAIN, TIERS } from '../../core/constants.js';
+import { TERRAIN, TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { summarize } from '../../sim/gameLoop.js';
-import { stateOf, getRelation, strengthOf } from '../../sim/diplomacy.js';
+import { stateOf, getRelation, strengthOf, pairKey } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
 import { getPolicyLabels } from './policyLabels.js';
+import { renderRealmTab } from './realm.js';
+import { policyOf } from '../../sim/policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 const fmt = (n: number) => Math.round(n);
@@ -34,6 +36,8 @@ export function updateHud(world: World, selected: any) {
   lastSelected = selected;
   bindFilterEvents();
   document.getElementById('tick')!.textContent = `Tick ${world.tick}`;
+  
+  renderRealmTab(world);
 
   // Alerts rendering
   const alertsPanel = document.getElementById('alerts-panel');
@@ -153,7 +157,13 @@ export function updateHud(world: World, selected: any) {
           const enStr = strengthOf(world, enemy);
           const strComp = `<span style="font-size:9px; color:#cbd5e1; margin-right:4px;">Str: ${Math.round(myStr)} v ${Math.round(enStr)}</span>`;
           if (st !== 'WAR') {
-            actionBtn = `${strComp}<button class="declare-war-btn" data-target="${enemy}" style="font-size: 8px; padding: 2px 4px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">Declare War</button>`;
+            const isVassalMaster = world.factions[enemy].vassalOf === world.playerFactionId || world.factions[world.playerFactionId].vassalOf === enemy;
+            if (!isVassalMaster) {
+              const pk = pairKey(world.playerFactionId, enemy);
+              const truce = world.diplo.truces[pk];
+              const inTruce = truce && world.tick < truce;
+              actionBtn = `${strComp}<button class="declare-war-btn" data-target="${enemy}" style="font-size: 8px; padding: 2px 4px; ${inTruce ? 'border: 1px solid #f1c40f; color: #f1c40f; background: transparent;' : 'background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c;'} border-radius: 3px; cursor: pointer;">${inTruce ? 'Break Truce' : 'Declare War'}</button>`;
+            }
           }
         }
         diploRows += `<div style="color:${(colors as Record<string, string>)[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">
@@ -275,12 +285,30 @@ export function updateHud(world: World, selected: any) {
       const s = settlement;
       const fac = world.factions[s.factionId];
       html += `<hr><b style="color:${fac.color}">${s.name}</b> — ${TIERS[s.tier].name} of ${fac.name}<br>`;
-      html += `Role: ${s.role} | Goal: <b>${s.goal}</b> | Focus: ${s.focus ?? '—'}<br>`;
-      html += `Pop: ${fmt(s.population)} | Tools: ${s.tools} | Gold: ${fmt(s.gold)}<br>`;
-      html += `<b>Stock</b> (cap ${storageCap(s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
-      const built = controlledHexes(world, s).filter(h => h.building).map(h => h.building);
+      // Calculate net gold
+      const taxRate = policyOf(world, s.factionId).taxRate;
+      const taxes = s.population * ECON.GOLD_INCOME_PER_POP * taxRate;
+      const soldiers = world.agents.filter(a => a.homeId === s.id && a.type === 'soldier');
+      const wages = soldiers.length * DIPLO.WAGE_SOLDIER;
+      
+      const built = controlledHexes(world, s).map(h => h.building).filter((b): b is string => b !== null);
       const all = [...built, ...s.buildings];
-      if (all.length) html += `Buildings: ${all.join(', ')}<br>`;
+      const upkeep = all.length * ECON.BUILDING_UPKEEP_GOLD;
+      const net = taxes - wages - upkeep;
+      const netStr = net >= 0 ? `+${net.toFixed(1)}/t` : `${net.toFixed(1)}/t`;
+      const netColor = net >= 0 ? '#2ecc71' : '#e74c3c';
+
+      html += `Role: ${s.role} | Goal: <b>${s.goal}</b> | Focus: ${s.focus ?? '—'}<br>`;
+      html += `Pop: ${fmt(s.population)} | Tools: ${s.tools} | Net Gold: <span style="color:${netColor};">${netStr}</span><br>`;
+      html += `<b>Stock</b> (cap ${storageCap(s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
+      if (all.length) {
+        const counts: Record<string, number> = {};
+        for (const b of all) {
+          if (b) counts[b] = (counts[b] || 0) + 1;
+        }
+        const consolidated = Object.entries(counts).map(([b, c]) => c > 1 ? `${b} x${c}` : b);
+        html += `Buildings: ${consolidated.join(', ')}<br>`;
+      }
       const agents = world.agents.filter(a => a.homeId === s.id);
       html += `Agents: ${agents.filter(a => a.type === 'villager').length} villagers, ` +
               `${agents.filter(a => a.type === 'caravan').length} caravans ` +

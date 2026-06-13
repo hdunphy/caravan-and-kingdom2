@@ -1,5 +1,6 @@
 // --- Trade Governor: buy scarce resources, export surpluses (GDD 4.1.4) ---
 import { distance } from '../../core/hex.js';
+import { treasuryOf } from '../economy.js';
 import { TIERS, ECON, GOALS } from '../../core/constants.js';
 import { assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
@@ -53,7 +54,7 @@ export function tradeGovernor(world: World, s: Settlement) {
 
     const cost = Math.ceil(ECON.TRADE_BATCH * unit);
     let barterRes = null;
-    if (s.gold < cost) {
+    if (treasuryOf(world, s.factionId) < cost) {
       // Can't afford gold — try bartering a surplus resource 1:1
       barterRes = ['ore', 'stone', 'timber', 'food']
         .find(r => r !== res && s.stock[r] >= ECON.TRADE_BATCH + 60);
@@ -87,7 +88,7 @@ export function tradeGovernor(world: World, s: Settlement) {
     if (s.stock[res] < ECON.TRADE_SURPLUS_MIN / policy.tradeStance) continue;
     const buyer = world.settlements
       .filter(o => o.id !== s.id && o.stock[res] < 100 && o.siegeHp == null &&
-        (o.factionId === s.factionId || o.gold >= ECON.TRADE_PRICE * 5) &&
+        (o.factionId === s.factionId || treasuryOf(world, o.factionId) >= ECON.TRADE_PRICE * 5) &&
         canTrade(world, s.factionId, o.factionId) &&
         distance(s.q, s.r, o.q, o.r) <= tradeRange)
       .sort((a, b) => distance(s.q, s.r, a.q, a.r) - distance(s.q, s.r, b.q, b.r))[0];

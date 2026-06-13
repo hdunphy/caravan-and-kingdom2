@@ -1,7 +1,7 @@
 // ---------- Combat (every tick) ----------
 import { key, distance } from '../../core/hex.js';
 import { DIPLO, ECON, TERRAIN } from '../../core/constants.js';
-import { log, deposit, controlledHexes, storageCap } from '../settlement.js';
+import { log, deposit, controlledHexes, storageCap, pushAlert } from '../settlement.js';
 import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
@@ -361,8 +361,25 @@ function captureSettlement(world: World, s: Settlement, survivors: Agent[]) {
   const winnerFid = survivors[0].factionId;
   const war = findWar(world, winnerFid, loserFid);
 
-  // the old regime's local agents disband
-  world.agents = world.agents.filter(a => !(a.homeId === s.id && a.factionId === loserFid));
+  let popFraction = 1;
+  const loserSettlements = settlementsF(world, loserFid);
+  if (loserSettlements.length > 0) {
+    const totalLoserPop = loserSettlements.reduce((sum, set) => sum + set.population, 0);
+    popFraction = totalLoserPop > 0 ? s.population / totalLoserPop : 1;
+  }
+
+  // Convert the old regime's local agents instead of disbanding
+  for (const a of world.agents) {
+    if (a.homeId === s.id && a.factionId === loserFid) {
+      a.factionId = winnerFid;
+      a.mission = null;
+      a.state = 'idle';
+      if (a.type === 'soldier') {
+        a.type = 'villager'; // Demobilize captured soldiers to prevent instant army spikes
+      }
+    }
+  }
+
   s.factionId = winnerFid;
   s.population = Math.max(5, s.population * (1 - DIPLO.CAPTURE_POP_LOSS));
   for (const res of ['food', 'timber', 'stone', 'ore']) s.stock[res] *= (1 - DIPLO.CAPTURE_STOCK_LOSS);
@@ -375,10 +392,13 @@ function captureSettlement(world: World, s: Settlement, survivors: Agent[]) {
     deposit(s, a.cargo);
     a.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
   }
+  
   if (war) {
-    war.exh[winnerFid] = Math.max(0, war.exh[winnerFid] - DIPLO.EXH_CAPTURE_WINNER_REFUND);
-    war.exh[loserFid] += DIPLO.EXH_CAPTURE_LOSER_PENALTY;
+    const penaltyScale = Math.max(0.2, Math.min(4.0, popFraction * 4)); // Losing 25% of empire = 1.0x penalty
+    war.exh[winnerFid] = Math.max(0, war.exh[winnerFid] - DIPLO.EXH_CAPTURE_WINNER_REFUND * penaltyScale);
+    war.exh[loserFid] += DIPLO.EXH_CAPTURE_LOSER_PENALTY * penaltyScale;
   }
+  
   if (world.stats) {
     world.stats.captures[winnerFid] = (world.stats.captures[winnerFid] ?? 0) + 1;
   }
@@ -394,9 +414,10 @@ function captureSettlement(world: World, s: Settlement, survivors: Agent[]) {
     log(world, `${world.factions[loserFid].name} has fallen. Their name passes into history.`);
   } else if (war && war.goalId === s.id) {
     const aggr = effectiveAggression(world, winnerFid);
-    if (war.exh[winnerFid] >= DIPLO.MUTUAL_THRESHOLD || aggr < 1.2) {
+    const loserSettsRemaining = settlementsF(world, loserFid).length;
+    if (war.exh[winnerFid] >= DIPLO.MUTUAL_THRESHOLD || aggr < 1.2 || loserSettsRemaining <= 2) {
       makePeace(world, war, loserFid); // peace from strength
     }
-    // aggressive victors pick a new goal at the next Court session
+    // aggressive victors or those against large empires pick a new goal at the next Court session
   }
 }

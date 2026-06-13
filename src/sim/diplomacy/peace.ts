@@ -6,6 +6,7 @@ import { homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
+import { treasuryOf, spendGold, addGold } from '../economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // ---------- Peace ----------
@@ -29,6 +30,7 @@ export function checkPeace(world: World, war: War) {
 
 export function makePeace(world: World, war: War, loser: number) {
   const d = world.diplo;
+  let wasVassalized = false;
   if (loser >= 0) {
     const winner = loser === war.a ? war.b : war.a;
     const losers = settlementsF(world, loser);
@@ -56,6 +58,7 @@ export function makePeace(world: World, war: War, loser: number) {
       log(world, `!!! SOVEREIGNTY LOSS !!! ${vassalFac.name} has surrendered their sovereignty and became a vassal of ${world.factions[winner].name}!`);
       pushAlert(world, { severity: 'IMPORTANT', factionId: loser, type: 'PEACE_SIGNED', tick: world.tick, targetId: losers[0]?.id, msg: `${vassalFac.name} became a vassal of ${world.factions[winner].name}!` });
       pushAlert(world, { severity: 'IMPORTANT', factionId: winner, type: 'PEACE_SIGNED', tick: world.tick, targetId: losers[0]?.id, msg: `${vassalFac.name} became a vassal of ${world.factions[winner].name}!` });
+      wasVassalized = true;
     } else {
       if (war.exh[loser] >= DIPLO.SUE_THRESHOLD && war.exh[winner] <= DIPLO.DOMINANT_EXH && losers.length > 1) {
         let bestS = null;
@@ -81,14 +84,13 @@ export function makePeace(world: World, war: War, loser: number) {
         }
       }
 
-      let total = 0;
-      for (const s of losers) {
-        if (s.factionId === loser) {
-          const pay = s.gold * DIPLO.REPARATIONS; s.gold -= pay; total += pay;
-        }
+      const pay = Math.floor(Math.max(0, treasuryOf(world, loser)) * DIPLO.REPARATIONS);
+      if (pay > 0) {
+        spendGold(world, loser, pay);
+        addGold(world, winner, pay);
       }
-      for (const s of winners) s.gold += total / Math.max(1, winners.length);
-      log(world, `${world.factions[loser].name} sued for peace with ${world.factions[winner].name} (${Math.round(total)}g reparations)`);
+      log(world, `${world.factions[loser].name} paid ${pay}g reparations to ${world.factions[winner].name}.`);
+      
       pushAlert(world, { severity: 'IMPORTANT', factionId: loser, type: 'PEACE_SIGNED', tick: world.tick, targetId: losers[0]?.id, msg: `${world.factions[loser].name} made peace with ${world.factions[winner].name}.` });
       pushAlert(world, { severity: 'IMPORTANT', factionId: winner, type: 'PEACE_SIGNED', tick: world.tick, targetId: losers[0]?.id, msg: `${world.factions[loser].name} made peace with ${world.factions[winner].name}.` });
     }
@@ -100,8 +102,10 @@ export function makePeace(world: World, war: War, loser: number) {
   }
   d.wars = d.wars.filter(w => w !== war);
   const pk = pairKey(war.a, war.b);
-  d.truces[pk] = world.tick + DIPLO.TRUCE_TICKS;
-  d.relations[pk] = DIPLO.PEACE_RELATION;
+  if (!wasVassalized) {
+    d.truces[pk] = world.tick + DIPLO.TRUCE_TICKS;
+    d.relations[pk] = DIPLO.PEACE_RELATION;
+  }
 
   // Reset focuses to PEACE when war ends
   for (const fid of [war.a, war.b]) {

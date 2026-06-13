@@ -3,6 +3,7 @@
 import { extractionSystem, metabolismSystem, movementSystem, logisticsSystem, maintenanceSystem } from './systems.js';
 import { aiSystem } from './governors.js';
 import { courtSystem, combatSystem } from './diplomacy.js';
+import { treasuryOf } from './economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
 const AI_INTERVAL = 10; // governors deliberate every N ticks
@@ -40,7 +41,7 @@ function sampleHistory(world: World) {
       const towns = world.settlements.filter(s => s.factionId === f.id);
       return {
         pop: Math.round(towns.reduce((a, s) => a + s.population, 0)),
-        gold: Math.round(towns.reduce((a, s) => a + s.gold, 0)),
+        gold: Math.round(treasuryOf(world, f.id)),
         n: towns.length,
         military: world.agents.filter(a => a.factionId === f.id && a.type === 'soldier').length,
       };
@@ -66,7 +67,7 @@ export function summarize(world: World) {
       population: Math.round(towns.reduce((a, s) => a + s.population, 0)),
       villagers: world.agents.filter(a => a.factionId === f.id && a.type === 'villager').length,
       caravans: world.agents.filter(a => a.factionId === f.id && a.type === 'caravan').length,
-      gold: Math.round(towns.reduce((a, s) => a + s.gold, 0)),
+      gold: Math.round(treasuryOf(world, f.id)),
       stock: towns.reduce((acc: Record<string, number>, s) => {
         for (const r of ['food', 'timber', 'stone', 'ore']) acc[r] = Math.round((acc[r] ?? 0) + s.stock[r]);
         return acc;

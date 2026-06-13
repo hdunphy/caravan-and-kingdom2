@@ -1,6 +1,7 @@
 // Settlement lifecycle: founding, tiers, roles, territory, stock helpers.
 import { key, range } from '../core/hex.js';
 import { TIERS, ROLES, GOALS, ECON, BUILDINGS } from '../core/constants.js';
+import { treasuryOf, spendGold } from './economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy, Alert } from '../types.js';
 
 const NAME_PARTS_A = ['Ald', 'Bren', 'Cor', 'Dun', 'Eld', 'Fen', 'Gold', 'Hav', 'Iron', 'Karn', 'Lor', 'Mer', 'Nor', 'Oak', 'Pell', 'Quill', 'Rav', 'Stone', 'Thorn', 'Vale'];
@@ -86,17 +87,17 @@ export function storageCap(s: Settlement): number {
   return cap;
 }
 
-export function canAfford(s: Settlement, cost: Record<string, number>) {
+export function canAfford(world: World, s: Settlement, cost: Record<string, number>) {
   for (const [res, amt] of Object.entries(cost)) {
-    const have = res === 'gold' ? s.gold : s.stock[res] ?? 0;
+    const have = res === 'gold' ? treasuryOf(world, s.factionId) : s.stock[res] ?? 0;
     if (have < amt) return false;
   }
   return true;
 }
 
-export function pay(s: Settlement, cost: Record<string, number>) {
+export function pay(world: World, s: Settlement, cost: Record<string, number>) {
   for (const [res, amt] of Object.entries(cost)) {
-    if (res === 'gold') s.gold -= amt;
+    if (res === 'gold') spendGold(world, s.factionId, amt);
     else s.stock[res] -= amt;
   }
 }

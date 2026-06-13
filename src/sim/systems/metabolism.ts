@@ -2,6 +2,7 @@
 import { ECON, TIERS, DIPLO } from '../../core/constants.js';
 import { log, pushAlert } from '../settlement.js';
 import { policyOf } from '../policy.js';
+import { treasuryOf, addGold } from '../economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function metabolismSystem(world: World) {
@@ -21,7 +22,8 @@ export function metabolismSystem(world: World) {
       taxBonus = DIPLO.MOBILIZATION_TAX_BONUS;
     }
     const policy = policyOf(world, s.factionId);
-    s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus * policy.taxRate;
+    const taxIncome = taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus * policy.taxRate;
+    addGold(world, s.factionId, taxIncome);
 
     const besieged = s.siegeHp != null;
     if (besieged) {
@@ -37,6 +39,14 @@ export function metabolismSystem(world: World) {
       // naturally bounded by food production AND granary capacity — a city
       // can't hold 30 days of food for more people than its warehouses fit.
       const foodDays = s.stock.food / Math.max(0.05, need);
+      
+      const t = treasuryOf(world, s.factionId);
+      const debt = Math.max(0, -t);
+      if (debt >= ECON.DEBT_DEATH) {
+        const decayRate = ECON.DEBT_DECAY_BASE * (debt / ECON.DEBT_DEATH);
+        s.population = Math.max(0.5, s.population - decayRate);
+      }
+
       if (!besieged && foodDays > ECON.FOOD_RESERVE) {
         const fertility = Math.min(1, (foodDays - ECON.FOOD_RESERVE) / ECON.FOOD_RESERVE);
         let growthPenalty = 1.0;
@@ -45,7 +55,15 @@ export function metabolismSystem(world: World) {
         }
         if (policy.taxRate > 1.2) growthPenalty *= 0.9;
         if (policy.rations < 0.8) growthPenalty *= 0.9;
-        s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty;
+        
+        let debtFactor = 1.0;
+        if (debt > 0 && debt < ECON.DEBT_DEATH) {
+          debtFactor = Math.max(0, 1 - Math.pow(debt / ECON.DEBT_DEATH, 2));
+        } else if (debt >= ECON.DEBT_DEATH) {
+          debtFactor = 0;
+        }
+
+        s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty * debtFactor;
       }
     } else {
       const foodDays = Math.max(0, s.stock.food) / Math.max(0.05, need);

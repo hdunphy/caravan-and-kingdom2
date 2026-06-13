@@ -25,6 +25,6 @@ export const BUILDINGS = {
   MARKET_HALL: { name: 'Market Hall', terrain: null, cost: { timber: 50, stone: 40 }, tradeBonus: true },
 };
 
-export const GOALS = { SURVIVE: 'SURVIVE', THRIFTY: 'THRIFTY', UPGRADE: 'UPGRADE', EXPAND: 'EXPAND', DEVELOP: 'DEVELOP' } as const;
+export const GOALS = { SURVIVE: 'SURVIVE', AUSTERITY: 'AUSTERITY', THRIFTY: 'THRIFTY', UPGRADE: 'UPGRADE', EXPAND: 'EXPAND', DEVELOP: 'DEVELOP' } as const;
 
 export const ROLES = { LUMBER: 'LUMBER', MINING: 'MINING', GRANARY: 'GRANARY', GENERAL: 'GENERAL' } as const;

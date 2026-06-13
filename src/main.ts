@@ -4,6 +4,7 @@ import { step } from './sim/gameLoop.js';
 import { makeCamera } from './ui/camera.js';
 import { render, HEX_SIZE } from './ui/renderer.js';
 import { updateHud, dismissedAlertKeys } from './ui/hud.js';
+import { updateSettlementCard } from './ui/hud/card.js';
 import { pixelToHex, hexToPixel, key } from './core/hex.js';
 import { saveWorld, loadWorld } from './sim/serialize.js';
 import { sueForPeace } from './sim/diplomacy/peace.js';
@@ -78,15 +79,33 @@ const cam = makeCamera(canvas);
 let selected: any = null;
 let speed = 1; // ticks per frame; 0 = paused
 
+export let activeLens = 'none';
+
+document.getElementById('lens-controls')?.addEventListener('click', e => {
+  const btn = (e.target as HTMLElement).closest('.lens-btn') as HTMLElement;
+  if (!btn) return;
+  document.querySelectorAll('.lens-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeLens = btn.dataset.lens || 'none';
+});
+
 // Tab switching logic
+const savedTab = localStorage.getItem('cnk_active_tab') ?? 'realm-tab';
 document.querySelectorAll<HTMLElement>('.tab-button').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b === btn));
+    if (btn.classList.contains('stance-btn')) return; // handled separately
+    document.querySelectorAll('.tab-container .tab-button').forEach(b => b.classList.toggle('active', b === btn));
     const targetTab = btn.dataset.tab;
-    document.querySelectorAll('.tab-content').forEach(content => {
-      content.classList.toggle('active', content.id === targetTab);
-    });
+    if (targetTab) {
+      localStorage.setItem('cnk_active_tab', targetTab);
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === targetTab);
+      });
+    }
   });
+  if (btn.dataset.tab === savedTab) {
+    btn.click();
+  }
 });
 
 canvas.addEventListener('click', e => {
@@ -95,10 +114,46 @@ canvas.addEventListener('click', e => {
   const { x, y } = cam.screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
   const { q, r } = pixelToHex(x, y, HEX_SIZE);
   selected = world.hexes.get(key(q, r)) ?? null;
+  updateHud(world, selected);
+});
 
-  // Auto-focus the Inspector tab
-  const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
-  if (inspectorTabButton) inspectorTabButton.click();
+export function selectSettlementHex(s: any) {
+  const p = hexToPixel(s.q, s.r, HEX_SIZE);
+  cam.x = p.x;
+  cam.y = p.y;
+  selected = world.hexes.get(key(s.q, s.r)) ?? null;
+  updateHud(world, selected);
+}
+
+window.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.code === 'Space') {
+    e.preventDefault();
+    const btn = document.querySelector(`[data-speed="${speed === 0 ? 1 : 0}"]`) as HTMLElement;
+    if (btn) btn.click();
+  } else if (e.code === 'Digit1') { document.querySelector<HTMLElement>('[data-speed="1"]')?.click(); }
+  else if (e.code === 'Digit2') { document.querySelector<HTMLElement>('[data-speed="4"]')?.click(); }
+  else if (e.code === 'Digit3') { document.querySelector<HTMLElement>('[data-speed="16"]')?.click(); }
+  else if (e.code === 'Escape') {
+    selected = null;
+    updateHud(world, selected);
+  } else if (e.code === 'KeyW' || e.code === 'ArrowUp') { cam.y -= 20 / cam.zoom; }
+  else if (e.code === 'KeyS' || e.code === 'ArrowDown') { cam.y += 20 / cam.zoom; }
+  else if (e.code === 'KeyA' || e.code === 'ArrowLeft') { cam.x -= 20 / cam.zoom; }
+  else if (e.code === 'KeyD' || e.code === 'ArrowRight') { cam.x += 20 / cam.zoom; }
+  else if (e.code === 'Equal' || e.code === 'NumpadAdd') { cam.zoom = Math.min(4, cam.zoom * 1.2); }
+  else if (e.code === 'Minus' || e.code === 'NumpadSubtract') { cam.zoom = Math.max(0.3, cam.zoom / 1.2); }
+  else if (e.code === 'Tab') {
+    e.preventDefault();
+    if (world.playerFactionId != null) {
+      const mySettlements = world.settlements.filter(s => s.factionId === world.playerFactionId);
+      if (mySettlements.length > 0) {
+        let idx = mySettlements.findIndex(s => selected && selected.q === s.q && selected.r === s.r);
+        idx = (idx + 1) % mySettlements.length;
+        selectSettlementHex(mySettlements[idx]);
+      }
+    }
+  }
 });
 
 for (const btn of document.querySelectorAll<HTMLElement>('[data-speed]')) {
@@ -163,7 +218,18 @@ function checkWinLoss(w: World) {
   const myPop = mySettlements.reduce((sum, s) => sum + s.population, 0);
   const aliveFactions = w.factions.filter(f => !f.eliminated);
   
-  const isWin = (myPop > totalPop * 0.6 && totalPop > 0) || (aliveFactions.length === 1 && aliveFactions[0].id === w.playerFactionId);
+  const isHegemony = aliveFactions.every(f => {
+    if (f.id === w.playerFactionId) return true;
+    let curr = f.id;
+    let limit = 20;
+    while (curr != null && limit-- > 0) {
+      if (curr === w.playerFactionId) return true;
+      curr = w.factions[curr].vassalOf;
+    }
+    return false;
+  });
+  
+  const isWin = (myPop > totalPop * 0.6 && totalPop > 0) || isHegemony;
   
   if (isEliminated) {
     showGameOver("Dynasty Ends", "Your kingdom has fallen into ruin and your lands are lost. History will forget your name.", "#e74c3c");
@@ -256,34 +322,20 @@ document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
   }
   
   // Jump to location
-  if (qStr && rStr) {
+    if (qStr && rStr) {
     const q = parseInt(qStr);
     const r = parseInt(rStr);
-    const p = hexToPixel(q, r, HEX_SIZE);
-    cam.x = p.x;
-    cam.y = p.y;
-    selected = world.hexes.get(key(q, r)) ?? null;
-    updateHud(world, selected);
-    
-    const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
-    if (inspectorTabButton) inspectorTabButton.click();
+    selectSettlementHex({q, r});
   } else {
     // Fallback for alerts that only have targetId (e.g. settlements)
     const s = world.settlements.find(s => s.id === targetId);
     if (s) {
-      const p = hexToPixel(s.q, s.r, HEX_SIZE);
-      cam.x = p.x;
-      cam.y = p.y;
-      selected = world.hexes.get(key(s.q, s.r)) ?? null;
-      updateHud(world, selected);
-      
-      const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
-      if (inspectorTabButton) inspectorTabButton.click();
+      selectSettlementHex(s);
     }
   }
 });
 
-document.getElementById('factions')!.addEventListener('click', (e) => {
+document.body.addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
   if (target.classList.contains('sue-peace-btn')) {
     const a = parseInt(target.dataset.a!);
@@ -300,6 +352,21 @@ document.getElementById('factions')!.addEventListener('click', (e) => {
       playerDeclareWar(world, targetId);
       updateHud(world, selected);
     }
+  }
+  if (target.classList.contains('set-focus-btn')) {
+    const targetId = parseInt(target.dataset.target!);
+    const focus = target.dataset.focus as string;
+    const s = world.settlements.find(x => x.id === targetId);
+    if (s && world.playerFactionId === s.factionId) {
+      world.factions[s.factionId].focus = focus;
+      updateHud(world, selected);
+    }
+  }
+  const realmRow = target.closest('.realm-row') as HTMLElement;
+  if (realmRow) {
+    const sId = parseInt(realmRow.dataset.id!);
+    const s = world.settlements.find(x => x.id === sId);
+    if (s) selectSettlementHex(s);
   }
 });
 
@@ -405,6 +472,9 @@ function frame(now: number) {
     if (speed === 0) break; // Pause immediately
     if (performance.now() > budget) { acc = 0; break; } // keep UI responsive
   }
+  
+  // Update the settlement card position live
+  updateSettlementCard(world, selected, cam);
   checkWinLoss(world);
   render(ctx, world, cam, selected);
   if (++hudTimer % 10 === 0 || speed === 0) updateHud(world, selected);

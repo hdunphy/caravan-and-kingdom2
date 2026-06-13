@@ -25,5 +25,9 @@ export function makeCamera(canvas: HTMLCanvasElement) {
     x: (sx - canvas.width / 2) / cam.zoom + cam.x,
     y: (sy - canvas.height / 2) / cam.zoom + cam.y,
   });
+  cam.worldToScreen = (wx: number, wy: number) => ({
+    x: (wx - cam.x) * cam.zoom + canvas.width / 2,
+    y: (wy - cam.y) * cam.zoom + canvas.height / 2,
+  });
   return cam;
 }

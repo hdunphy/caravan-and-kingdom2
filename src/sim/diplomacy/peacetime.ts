@@ -5,6 +5,7 @@ import { homeOf } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
+import { treasuryOf, spendGold, addGold } from '../economy.js';
 import { recruitSoldiers } from './war.js';
 import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
@@ -13,9 +14,13 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 export function manageGarrison(world: World, fid: number) {
   const aggr = effectiveAggression(world, fid);
   const policy = policyOf(world, fid);
-  const target = Math.min(
-    Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison),
-    armyCap(world, fid));
+  let baseTarget = Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison);
+  if (fid === world.playerFactionId) {
+    const totalPop = settlementsF(world, fid).reduce((sum, s) => sum + s.population, 0);
+    baseTarget = Math.round((totalPop / 25) * policy.garrison);
+  }
+  const target = Math.min(Math.round(baseTarget * policy.recruitment), armyCap(world, fid));
+  
   const soldiers = soldiersOf(world, fid);
   if (soldiers.length < target) {
     recruitSoldiers(world, fid, target);
@@ -36,14 +41,12 @@ export function considerGift(world: World, fid: number) {
     if (other.id === fid || !aliveF(world, other.id)) continue;
     if (stateOf(world, fid, other.id) !== 'HOSTILE') continue;
     if (strengthOf(world, other.id) <= strengthOf(world, fid)) continue;
-    const rich = settlementsF(world, fid).sort((a, b) => b.gold - a.gold || a.id - b.id)[0];
-    if (!rich || rich.gold < DIPLO.GIFT_VALUE * 2) continue;
-    rich.gold -= DIPLO.GIFT_VALUE;
-    const recipient = settlementsF(world, other.id)[0];
-    if (recipient) recipient.gold += DIPLO.GIFT_VALUE;
+    if (treasuryOf(world, fid) < DIPLO.GIFT_VALUE * 2) continue;
+    spendGold(world, fid, DIPLO.GIFT_VALUE);
+    const topTarget = settlementsF(world, other.id).sort((a, b) => b.gold - a.gold || a.id - b.id)[0];
+    if (topTarget) addGold(world, topTarget.factionId, DIPLO.GIFT_VALUE);
     addRelation(world, fid, other.id, DIPLO.GIFT_VALUE / DIPLO.GIFT_GOLD_PER_POINT);
     log(world, `${world.factions[fid].name} sent tribute to ${other.name}`);
     return;
   }
 }
-
