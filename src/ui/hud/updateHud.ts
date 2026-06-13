@@ -13,6 +13,8 @@ let filterBound = false;
 let lastWorld: any = null;
 let lastSelected: any = null;
 
+export const dismissedAlertKeys = new Set<string>();
+
 function bindFilterEvents() {
   if (filterBound) return;
   const buttons = document.querySelectorAll<HTMLElement>('.event-filter');
@@ -35,8 +37,14 @@ export function updateHud(world: World, selected: any) {
   // Alerts rendering
   const alertsPanel = document.getElementById('alerts-panel');
   if (alertsPanel) {
-    if (world.alerts && world.alerts.length > 0) {
-      alertsPanel.innerHTML = world.alerts.map(a => {
+    const currentKeys = new Set(world.alerts?.map(a => `${a.type}-${a.targetId}`));
+    for (const k of dismissedAlertKeys) {
+      if (!currentKeys.has(k)) dismissedAlertKeys.delete(k);
+    }
+    const visibleAlerts = world.alerts?.filter(a => !dismissedAlertKeys.has(`${a.type}-${a.targetId}`)) || [];
+
+    if (visibleAlerts.length > 0) {
+      alertsPanel.innerHTML = visibleAlerts.map(a => {
         let color = '#e74c3c';
         let icon = '⚠';
         if (a.type === 'STARVATION') { color = '#e67e22'; icon = '🍽'; }
@@ -44,9 +52,10 @@ export function updateHud(world: World, selected: any) {
         if (a.type === 'SIEGE') { color = '#e74c3c'; icon = '⚔'; }
         if (a.type === 'STAGNANT') { color = '#9b59b6'; icon = '🛑'; }
         return `
-          <div style="background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px;">
-            <span style="font-size: 14px;">${icon}</span>
-            <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div class="alert-item" data-type="${a.type}" data-target="${a.targetId}" style="pointer-events: auto; cursor: pointer; background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px; position: relative;">
+            <button class="dismiss-alert-btn" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: #8fa3bd; cursor: pointer; font-size: 10px; padding: 2px 4px;">✖</button>
+            <span style="font-size: 14px; margin-top: 2px;">${icon}</span>
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-right: 12px;">
               <b style="color: ${color}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${a.type}</b>
               <span>${a.msg}</span>
             </div>

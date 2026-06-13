@@ -3,8 +3,8 @@ import { generateWorld } from './sim/worldgen.js';
 import { step } from './sim/gameLoop.js';
 import { makeCamera } from './ui/camera.js';
 import { render, HEX_SIZE } from './ui/renderer.js';
-import { updateHud } from './ui/hud.js';
-import { pixelToHex, key } from './core/hex.js';
+import { updateHud, dismissedAlertKeys } from './ui/hud.js';
+import { pixelToHex, hexToPixel, key } from './core/hex.js';
 import { saveWorld, loadWorld } from './sim/serialize.js';
 import { makePeace } from './sim/diplomacy.js';
 import type { World } from './types.js';
@@ -108,6 +108,35 @@ document.getElementById('reseed')!.addEventListener('click', () => {
   world = generateWorld(Math.floor(Math.random() * 1e9), 24, 4);
   applyPlaystyle(world);
   selected = null;
+});
+
+document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement;
+  const alertEl = target.closest('.alert-item') as HTMLElement;
+  if (!alertEl) return;
+  
+  const type = alertEl.dataset.type;
+  const targetId = parseInt(alertEl.dataset.target!);
+  
+  if (target.classList.contains('dismiss-alert-btn')) {
+    dismissedAlertKeys.add(`${type}-${targetId}`);
+    updateHud(world, selected);
+    return;
+  }
+  
+  // Jump to location
+  const s = world.settlements.find(s => s.id === targetId);
+  if (s) {
+    const p = hexToPixel(s.q, s.r, HEX_SIZE);
+    cam.x = p.x;
+    cam.y = p.y;
+    selected = world.hexes.get(key(s.q, s.r)) ?? null;
+    updateHud(world, selected);
+    
+    // Auto-focus inspector tab
+    const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
+    if (inspectorTabButton) inspectorTabButton.click();
+  }
 });
 
 document.getElementById('factions')!.addEventListener('click', (e) => {
