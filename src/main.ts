@@ -218,7 +218,18 @@ function checkWinLoss(w: World) {
   const myPop = mySettlements.reduce((sum, s) => sum + s.population, 0);
   const aliveFactions = w.factions.filter(f => !f.eliminated);
   
-  const isWin = (myPop > totalPop * 0.6 && totalPop > 0) || (aliveFactions.length === 1 && aliveFactions[0].id === w.playerFactionId);
+  const isHegemony = aliveFactions.every(f => {
+    if (f.id === w.playerFactionId) return true;
+    let curr = f.id;
+    let limit = 20;
+    while (curr != null && limit-- > 0) {
+      if (curr === w.playerFactionId) return true;
+      curr = w.factions[curr].vassalOf;
+    }
+    return false;
+  });
+  
+  const isWin = (myPop > totalPop * 0.6 && totalPop > 0) || isHegemony;
   
   if (isEliminated) {
     showGameOver("Dynasty Ends", "Your kingdom has fallen into ruin and your lands are lost. History will forget your name.", "#e74c3c");

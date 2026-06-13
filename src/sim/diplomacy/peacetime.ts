@@ -14,9 +14,13 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 export function manageGarrison(world: World, fid: number) {
   const aggr = effectiveAggression(world, fid);
   const policy = policyOf(world, fid);
-  const target = Math.min(
-    Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison),
-    armyCap(world, fid));
+  let baseTarget = Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison);
+  if (fid === world.playerFactionId) {
+    const totalPop = settlementsF(world, fid).reduce((sum, s) => sum + s.population, 0);
+    baseTarget = Math.round((totalPop / 25) * policy.garrison);
+  }
+  const target = Math.min(Math.round(baseTarget * policy.recruitment), armyCap(world, fid));
+  
   const soldiers = soldiersOf(world, fid);
   if (soldiers.length < target) {
     recruitSoldiers(world, fid, target);

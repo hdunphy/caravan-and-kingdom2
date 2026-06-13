@@ -3,8 +3,11 @@
 From a playtest on `treasury-and-debt` (`b01ac6d`):
 
 1. **Pacing** — truces feel too long (and seem to grow), wars feel too short. End-game: *"we take one city then wait 5 minutes."* Either wars should last longer, truces should be shorter, or there should be more to do during peace (all three are addressed below).
-2. **Bug** — villagers/agents of a captured city still render in the **old faction's color**.
-3. **Bug** — it looked possible to **declare war on your own vassal** (player couldn't fully confirm — code says it's possible).
+2. **Bug** — villagers/agents of a captured city still render in the **old faction's color** (Part 4).
+3. **Bug** — it is possible to **declare war on your own vassal/master** (Part 5).
+4. **Bug (playtest 2)** — **vassalizing every faction did not trigger a win** (Part 6).
+5. **Bug (playtest 2)** — despite the most cities, highest pop, and recruitment at 3×, the player had the **fewest soldiers** (Part 7).
+6. **Bug (playtest 2)** — master and vassals are **stuck in a truce with deeply negative relations** (Part 8) — this, not the relation threshold, is the "stuck truce" the player saw.
 
 **Re-grep symbols before editing — line numbers drift.** Pacing changes intentionally shift the headless baseline, so validate with **metrics** (below), not byte-identical determinism. Constants live in `src/core/constants/diplo.ts`.
 

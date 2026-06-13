@@ -1,7 +1,7 @@
 // Observer HUD: faction overview, inspector panel, event log.
 import { TERRAIN, TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { summarize } from '../../sim/gameLoop.js';
-import { stateOf, getRelation, strengthOf } from '../../sim/diplomacy.js';
+import { stateOf, getRelation, strengthOf, pairKey } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
 import { getPolicyLabels } from './policyLabels.js';
@@ -157,7 +157,13 @@ export function updateHud(world: World, selected: any) {
           const enStr = strengthOf(world, enemy);
           const strComp = `<span style="font-size:9px; color:#cbd5e1; margin-right:4px;">Str: ${Math.round(myStr)} v ${Math.round(enStr)}</span>`;
           if (st !== 'WAR') {
-            actionBtn = `${strComp}<button class="declare-war-btn" data-target="${enemy}" style="font-size: 8px; padding: 2px 4px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c; border-radius: 3px; cursor: pointer;">Declare War</button>`;
+            const isVassalMaster = world.factions[enemy].vassalOf === world.playerFactionId || world.factions[world.playerFactionId].vassalOf === enemy;
+            if (!isVassalMaster) {
+              const pk = pairKey(world.playerFactionId, enemy);
+              const truce = world.diplo.truces[pk];
+              const inTruce = truce && world.tick < truce;
+              actionBtn = `${strComp}<button class="declare-war-btn" data-target="${enemy}" style="font-size: 8px; padding: 2px 4px; ${inTruce ? 'border: 1px solid #f1c40f; color: #f1c40f; background: transparent;' : 'background: rgba(231, 76, 60, 0.2); color: #e74c3c; border: 1px solid #e74c3c;'} border-radius: 3px; cursor: pointer;">${inTruce ? 'Break Truce' : 'Declare War'}</button>`;
+            }
           }
         }
         diploRows += `<div style="color:${(colors as Record<string, string>)[st]}; display:flex; justify-content:space-between; align-items:center; margin: 2px 0; font-size:11px;">

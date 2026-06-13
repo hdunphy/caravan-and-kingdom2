@@ -242,7 +242,11 @@ export function courtSystem(world: World) {
   for (const fac of world.factions) {
     const fid = fac.id;
     if (!aliveF(world, fid)) continue;
-    if (fac.vassalOf !== undefined) continue; // Vassals do not mobilize or declare wars independently
+    
+    if (fac.vassalOf !== undefined) {
+      if (!atWarAny(world, fid)) manageGarrison(world, fid);
+      continue; // Vassals do not mobilize or declare wars independently
+    }
 
     // If we are at war, force WAR focus
     if (atWarAny(world, fid)) {

@@ -30,6 +30,7 @@ export function checkPeace(world: World, war: War) {
 
 export function makePeace(world: World, war: War, loser: number) {
   const d = world.diplo;
+  let wasVassalized = false;
   if (loser >= 0) {
     const winner = loser === war.a ? war.b : war.a;
     const losers = settlementsF(world, loser);
@@ -57,6 +58,7 @@ export function makePeace(world: World, war: War, loser: number) {
       log(world, `!!! SOVEREIGNTY LOSS !!! ${vassalFac.name} has surrendered their sovereignty and became a vassal of ${world.factions[winner].name}!`);
       pushAlert(world, { severity: 'IMPORTANT', factionId: loser, type: 'PEACE_SIGNED', tick: world.tick, targetId: losers[0]?.id, msg: `${vassalFac.name} became a vassal of ${world.factions[winner].name}!` });
       pushAlert(world, { severity: 'IMPORTANT', factionId: winner, type: 'PEACE_SIGNED', tick: world.tick, targetId: losers[0]?.id, msg: `${vassalFac.name} became a vassal of ${world.factions[winner].name}!` });
+      wasVassalized = true;
     } else {
       if (war.exh[loser] >= DIPLO.SUE_THRESHOLD && war.exh[winner] <= DIPLO.DOMINANT_EXH && losers.length > 1) {
         let bestS = null;
@@ -100,8 +102,10 @@ export function makePeace(world: World, war: War, loser: number) {
   }
   d.wars = d.wars.filter(w => w !== war);
   const pk = pairKey(war.a, war.b);
-  d.truces[pk] = world.tick + DIPLO.TRUCE_TICKS;
-  d.relations[pk] = DIPLO.PEACE_RELATION;
+  if (!wasVassalized) {
+    d.truces[pk] = world.tick + DIPLO.TRUCE_TICKS;
+    d.relations[pk] = DIPLO.PEACE_RELATION;
+  }
 
   // Reset focuses to PEACE when war ends
   for (const fid of [war.a, war.b]) {

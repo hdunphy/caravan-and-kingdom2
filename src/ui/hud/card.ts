@@ -1,7 +1,7 @@
 import { TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { policyOf } from '../../sim/policy.js';
 import { controlledHexes, storageCap } from '../../sim/settlement.js';
-import { stateOf, getRelation, strengthOf } from '../../sim/diplomacy.js';
+import { stateOf, getRelation, strengthOf, pairKey } from '../../sim/diplomacy.js';
 import { HEX_SIZE } from '../renderer.js';
 import type { World } from '../../types.js';
 
@@ -119,10 +119,16 @@ export function updateSettlementCard(world: World, selected: any, cam: any) {
         if (war) {
           html += `<button class="sue-peace-btn" data-a="${war.a}" data-b="${war.b}" style="width:100%; background: #e74c3c; border-color: #e74c3c; color: white;">Sue for Peace</button>`;
         }
-      } else if (st !== 'TRUCE') {
-        html += `<button class="declare-war-btn" data-target="${s.factionId}" style="width:100%; background: rgba(231, 76, 60, 0.2); border-color: #e74c3c; color: #e74c3c;">Declare War</button>`;
       } else {
-        html += `<div style="font-size:10px; color:#f1c40f; text-align:center;">Truce Active</div>`;
+        const isVassalMaster = world.factions[s.factionId].vassalOf === pFid || world.factions[pFid].vassalOf === s.factionId;
+        if (!isVassalMaster) {
+          const truce = world.diplo.truces[pairKey(pFid, s.factionId)];
+          const inTruce = truce && world.tick < truce;
+          html += `<button class="declare-war-btn" data-target="${s.factionId}" style="width:100%; ${inTruce ? 'border-color: #f1c40f; color: #f1c40f; background: transparent;' : 'background: rgba(231, 76, 60, 0.2); border-color: #e74c3c; color: #e74c3c;'}">${inTruce ? 'Break Truce' : 'Declare War'}</button>`;
+          if (inTruce) {
+             html += `<div style="font-size:10px; color:#f1c40f; text-align:center; margin-top:2px;">Truce Active</div>`;
+          }
+        }
       }
       
       html += `</div>`;

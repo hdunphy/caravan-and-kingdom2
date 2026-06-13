@@ -13,9 +13,22 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 export function playerDeclareWar(world: World, targetId: number) {
   if (world.playerFactionId == null) return;
   const fid = world.playerFactionId;
+  const target = world.factions[targetId];
+  const d = world.diplo;
+  const pk = pairKey(fid, targetId);
+  
+  if (target.vassalOf === fid || world.factions[fid].vassalOf === targetId) {
+    pushAlert(world, { severity: 'INFO', factionId: fid, type: 'DIPLO', tick: world.tick, msg: `Cannot declare war on your overlord or your vassal.` });
+    return;
+  }
+  if (d.truces[pk] && world.tick < d.truces[pk]) {
+    // Truce break penalty
+    pushAlert(world, { severity: 'IMPORTANT', factionId: fid, type: 'DIPLO', tick: world.tick, msg: `You broke the truce with ${target.name}! Your reputation suffers.` });
+    d.relations[pk] -= 20; // immediate relation hit
+    // Allow it to proceed
+  }
   
   if (atWar(world, fid, targetId)) return;
-  if ((world.diplo.truces[pairKey(fid, targetId)] ?? 0) > world.tick) return;
   
   const army = armyCap(world, fid);
   const activeWars = world.diplo.wars.filter(w => w.a === fid || w.b === fid).length;
@@ -126,17 +139,8 @@ export function pickWarGoal(world: World, fid: number, enemyFid: number) {
 }
 
 export function recruitSoldiers(world: World, fid: number, target: number) {
-  const policy = policyOf(world, fid);
-  const isPlayer = fid === world.playerFactionId;
-  
-  let adjustedTarget = target * policy.recruitment;
-  if (isPlayer) {
-    const totalPop = settlementsF(world, fid).reduce((sum, s) => sum + s.population, 0);
-    adjustedTarget = (totalPop / 15) * policy.recruitment;
-  }
-
   let count = soldiersOf(world, fid).length;
-  if (count >= adjustedTarget) return;
+  if (count >= target) return;
 
   const isAtWar = atWarAny(world, fid);
   const maxPerSettlement = isAtWar ? 3 : 1;
@@ -146,7 +150,7 @@ export function recruitSoldiers(world: World, fid: number, target: number) {
     if (s.population <= 40) continue; // a soldier-company costs real pop; don't hollow out villages
     const c = DIPLO.SOLDIER_COST;
     let recruited = 0;
-    while (recruited < maxPerSettlement && count < adjustedTarget && s.population > 40 + DIPLO.SOLDIER_POP_COST) {
+    while (recruited < maxPerSettlement && count < target && s.population > 40 + DIPLO.SOLDIER_POP_COST) {
       if (s.stock.food >= c.food && s.stock.ore >= c.ore && treasuryOf(world, s.factionId) >= c.gold) {
         s.stock.food -= c.food; s.stock.ore -= c.ore; spendGold(world, s.factionId, c.gold);
         s.population -= DIPLO.SOLDIER_POP_COST;
