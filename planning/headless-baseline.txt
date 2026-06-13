@@ -1,0 +1,31 @@
+Seed 42, running 3000 ticks...
+Done in 9183ms
+
+┌─────────┬─────────────┬─────────────┬────────────┬───────────┬──────────┬──────┬──────────┐
+│ (index) │ faction     │ settlements │ population │ villagers │ caravans │ gold │ stock    │
+├─────────┼─────────────┼─────────────┼────────────┼───────────┼──────────┼──────┼──────────┤
+│ 0       │ 'Aurelia'   │ 11          │ 1874       │ 182       │ 44       │ 1965 │ [Object] │
+│ 1       │ 'Vesper'    │ 10          │ 974        │ 117       │ 19       │ 993  │ [Object] │
+│ 2       │ 'Thornwall' │ 12          │ 1292       │ 201       │ 32       │ 1037 │ [Object] │
+│ 3       │ 'Skylde'    │ 13          │ 1412       │ 212       │ 33       │ 2022 │ [Object] │
+└─────────┴─────────────┴─────────────┴────────────┴───────────┴──────────┴──────┴──────────┘
+Settlements: Quillford(C,M,EXPAND,pop 380)  Oakmere(C,M,DEVELOP,pop 489)  Brenton(C,M,EXPAND,pop 163)  Mermark(C,M,DEVELOP,pop 54)  Havmere(T,M,DEVELOP,pop 56)  Valedale(C,M,DEVELOP,pop 44)  Norholm(C,M,DEVELOP,pop 233)  Aldwick(C,L,DEVELOP,pop 157)  Quillmere(C,G,EXPAND,pop 315)  Fenton(C,G,DEVELOP,pop 235)  Cormere(C,L,EXPAND,pop 78)  Fenstead(C,L,EXPAND,pop 76)  Brendale(C,L,EXPAND,pop 148)  Valeton(C,L,EXPAND,pop 147)  Aldwick(C,M,DEVELOP,pop 114)  Eldford(C,G,DEVELOP,pop 146)  Karnholm(C,L,EXPAND,pop 176)  Havford(C,G,DEVELOP,pop 117)  Karnhaven(C,M,DEVELOP,pop 112)  Goldford(C,L,EXPAND,pop 106)  Havwick(C,M,EXPAND,pop 171)  Brendale(C,L,EXPAND,pop 167)  Dunton(T,L,DEVELOP,pop 20)  Thornton(C,G,EXPAND,pop 146)  Alddale(C,G,EXPAND,pop 132)  Fenhaven(C,M,EXPAND,pop 190)  Irondale(C,M,EXPAND,pop 98)  Lorhaven(T,L,DEVELOP,pop 51)  Valemark(C,L,EXPAND,pop 165)  Mermere(T,L,DEVELOP,pop 81)  Merwick(T,G,DEVELOP,pop 71)  Corford(T,G,DEVELOP,pop 71)  Quilldale(T,G,DEVELOP,pop 69)  Norburg(C,G,EXPAND,pop 118)  Cormere(C,L,EXPAND,pop 77)  Mermere(T,L,DEVELOP,pop 54)  Valeford(T,G,DEVELOP,pop 54)  Normere(C,G,UPGRADE,pop 57)  Aldstead(V,G,DEVELOP,pop 67)  Norwick(C,M,EXPAND,pop 67)  Quillburg(C,G,EXPAND,pop 76)  Merburg(C,M,EXPAND,pop 76)  Goldholm(V,L,DEVELOP,pop 44)  Eldholm(V,G,DEVELOP,pop 24)  Cormere(V,G,DEVELOP,pop 24)  Dunwick(T,M,EXPAND,pop 36)
+Agents: 924 | Log events: 200
+
+Last events:
+  t2994: 1 unpaid worker(s) deserted
+  t2996: 1 unpaid worker(s) deserted
+  t2998: Norburg transferred 30 food to Irondale
+  t2999: Cormere transferred 30 food to Irondale
+  t3000: Valemark transferred 30 food to Irondale
+  t3000: Normere grew into a City!
+  t3000: Normere assembled a caravan
+  t3000: Aldstead assembled a caravan
+  t3000: Norwick built a Masonry
+  t3000: Vesper grew impatient and declared WAR on Skylde!
+
+Determinism: PASS
+PASS: Population survived
+PASS: Villagers recruited
+PASS: Buildings constructed
+PASS: Sim produced events
