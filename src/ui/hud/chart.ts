@@ -1,4 +1,4 @@
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 // --- History chart (faction pop/gold/military over time) ---
 let chartMetric = 'pop';
 for (const btn of document.querySelectorAll<HTMLElement>('[data-metric]')) {

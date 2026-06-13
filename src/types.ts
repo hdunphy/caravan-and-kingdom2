@@ -4,7 +4,7 @@
 
 export type Resource = 'food' | 'timber' | 'stone' | 'ore';
 
-export type Stock = Record<Resource, number>;
+export type Stock = Record<Resource, number> & { [k: string]: number };
 
 export type TerrainKind =
   | 'PLAINS' | 'FOREST' | 'HILLS' | 'MOUNTAINS' | 'WATER' | 'RIVER';

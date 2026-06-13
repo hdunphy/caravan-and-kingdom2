@@ -1,14 +1,14 @@
 // Agent creation + small shared helpers (speeds, capacities, trade tally, fallback sites).
 import { distance, range } from '../../core/hex.js';
 import { ECON } from '../../core/constants.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 export const AGENT_SPEED = { villager: 1.0, caravan: 1.5, settler: 0.8, soldier: 1.0 };
 
 export const AGENT_CAPACITY = { villager: ECON.VILLAGER_CAPACITY, caravan: ECON.CARAVAN_CAPACITY, soldier: 30 };
 
 // Cross-faction transactions warm relations; the Court tallies them each session.
-export function recordTrade(world: World, fa, fb) {
+export function recordTrade(world: World, fa: number, fb: number) {
   if (fa === fb || !world.diplo) return;
   const k = Math.min(fa, fb) + '|' + Math.max(fa, fb);
   world.diplo.tradeCounts[k] = (world.diplo.tradeCounts[k] ?? 0) + 1;
@@ -19,7 +19,7 @@ export function recordTrade(world: World, fa, fb) {
 }
 
 // Nearest valid colony spot around a failed site.
-export function findFallbackSite(world: World, q0, r0, radius = 4) {
+export function findFallbackSite(world: World, q0: number, r0: number, radius: number = 4) {
   let best = null, bestD = Infinity;
   for (const [q, r] of range(q0, r0, radius)) {
     const hex = world.hexes.get(q + ',' + r);
@@ -32,7 +32,7 @@ export function findFallbackSite(world: World, q0, r0, radius = 4) {
   return best;
 }
 
-export function spawnAgent(world: World, type, factionId, homeId, q, r) {
+export function spawnAgent(world: World, type: string, factionId: number, homeId: number, q: number, r: number) {
   const agent = {
     id: world.nextId++,
     type, factionId, homeId,
@@ -48,6 +48,6 @@ export function spawnAgent(world: World, type, factionId, homeId, q, r) {
   return agent;
 }
 
-export function homeOf(world: World, agent) {
+export function homeOf(world: World, agent: Agent) {
   return world.settlements.find(s => s.id === agent.homeId);
 }

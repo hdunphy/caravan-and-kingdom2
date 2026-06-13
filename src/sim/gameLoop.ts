@@ -3,7 +3,7 @@
 import { extractionSystem, metabolismSystem, movementSystem, logisticsSystem, maintenanceSystem } from './systems.js';
 import { aiSystem } from './governors.js';
 import { courtSystem, combatSystem } from './diplomacy.js';
-import type { World } from '../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../types.js';
 
 const AI_INTERVAL = 10; // governors deliberate every N ticks
 
@@ -46,7 +46,7 @@ function sampleHistory(world: World) {
   }
 }
 
-export function run(world: World, ticks) {
+export function run(world: World, ticks: number) {
   for (let i = 0; i < ticks; i++) step(world);
   return world;
 }

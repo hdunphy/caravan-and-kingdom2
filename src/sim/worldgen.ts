@@ -3,9 +3,10 @@ import { makeRng } from '../core/rng.js';
 import { key, range, distance, hexToPixel, neighbors } from '../core/hex.js';
 import { TERRAIN, FACTIONS, DEFAULT_POLICY } from '../core/constants.js';
 import { foundSettlement } from './settlement.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../types.js';
 
 // Seeded 2D value noise with fractal octaves.
-function makeNoise(seed) {
+function makeNoise(seed: number) {
   const hash = (ix, iy) => {
     let h = Math.imul(ix, 0x27d4eb2d) ^ Math.imul(iy, 0x165667b1) ^ Math.imul(seed | 0, 0x9e3779b9);
     h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
@@ -13,7 +14,7 @@ function makeNoise(seed) {
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   };
   const smooth = t => t * t * (3 - 2 * t);
-  const base = (x, y) => {
+  const base = (x: number, y: number) => {
     const ix = Math.floor(x), iy = Math.floor(y);
     const u = smooth(x - ix), v = smooth(y - iy);
     const a = hash(ix, iy), b = hash(ix + 1, iy);
@@ -30,7 +31,7 @@ function makeNoise(seed) {
   };
 }
 
-export function generateWorld(seed = 42, mapRadius = 24, factionCount = 4) {
+export function generateWorld(seed: number = 42, mapRadius: number = 24, factionCount: number = 4) {
   const rng = makeRng(seed);
   const world = {
     seed, tick: 0, mapRadius,

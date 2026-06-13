@@ -1,6 +1,6 @@
 // A* pathfinding over the hex grid, weighted by terrain move cost.
 import { TERRAIN, ECON } from './constants.js';
-import type { World } from '../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../types.js';
 
 type QR = [number, number];
 

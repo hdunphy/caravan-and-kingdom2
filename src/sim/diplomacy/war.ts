@@ -6,9 +6,9 @@ import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
-export function declareWar(world: World, attackerId, defenderId, goalId, isInitial = false) {
+export function declareWar(world: World, attackerId: number, defenderId: number, goalId: number, isInitial = false) {
   if (atWar(world, attackerId, defenderId)) return;
 
   const pk = pairKey(attackerId, defenderId);
@@ -83,7 +83,7 @@ export function declareWar(world: World, attackerId, defenderId, goalId, isIniti
 }
 
 // ---------- War conduct ----------
-export function pickWarGoal(world: World, fid, enemyFid) {
+export function pickWarGoal(world: World, fid: number, enemyFid: number) {
   const mine = settlementsF(world, fid);
   let best = null, bestScore = Infinity;
   for (const t of settlementsF(world, enemyFid)) {
@@ -95,7 +95,7 @@ export function pickWarGoal(world: World, fid, enemyFid) {
   return best;
 }
 
-export function recruitSoldiers(world: World, fid, target) {
+export function recruitSoldiers(world: World, fid: number, target: number) {
   let count = soldiersOf(world, fid).length;
   if (count >= target) return;
 
@@ -121,7 +121,7 @@ export function recruitSoldiers(world: World, fid, target) {
   }
 }
 
-export function warCouncil(world: World, war, side) {
+export function warCouncil(world: World, war: War, side: string) {
   const enemy = side === war.a ? war.b : war.a;
   const mySettlements = settlementsF(world, side);
   if (mySettlements.length === 0) return;

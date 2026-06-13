@@ -3,9 +3,9 @@ import { TIERS, ECON, GOALS } from '../../core/constants.js';
 import { canAfford, pay } from '../settlement.js';
 import { spawnAgent } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
-export function laborGovernor(world: World, s) {
+export function laborGovernor(world: World, s: Settlement) {
   // High-level focus = most needed resource
   const factionFocus = world.factions[s.factionId]?.focus ?? 'PEACE';
   if (factionFocus === 'MOBILIZE' || factionFocus === 'WAR') {

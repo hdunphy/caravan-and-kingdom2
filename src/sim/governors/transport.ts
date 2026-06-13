@@ -5,10 +5,10 @@ import { controlledHexes, canAfford, pay, log } from '../settlement.js';
 import { spawnAgent, assignPath, AGENT_CAPACITY } from '../agents.js';
 import { unclaimed, takeTicket } from '../systems.js';
 import { traitsOf } from './index.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 // --- Transport Governor: caravan fleet + logistics missions (GDD 4.1.3) ---
-export function transportGovernor(world: World, s) {
+export function transportGovernor(world: World, s: Settlement) {
   if (s.siegeHp != null) return; // under siege: no caravans leave the walls
   const caravans = world.agents.filter(a => a.homeId === s.id && a.type === 'caravan');
   const base = s.tier === 'VILLAGE' ? 1 : s.tier === 'TOWN' ? 2 : 3;

@@ -4,7 +4,7 @@ import { summarize } from '../../sim/gameLoop.js';
 import { stateOf, getRelation } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 const fmt = n => Math.round(n);
 

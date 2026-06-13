@@ -1,7 +1,7 @@
 // Canvas renderer: hex map, territory borders, buildings, resource piles, agents.
 import { hexToPixel, hexCorners, HEX_DIRS, key } from '../core/hex.js';
 import { TERRAIN, TIERS } from '../core/constants.js';
-import type { World } from '../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../types.js';
 
 export const HEX_SIZE = 26;
 

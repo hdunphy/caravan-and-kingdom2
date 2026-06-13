@@ -7,7 +7,7 @@ import { distance } from '../../core/hex.js';
 import { ECON, GOALS } from '../../core/constants.js';
 import { controlledHexes, storageCap } from '../settlement.js';
 import { AGENT_CAPACITY, homeOf, assignPath } from '../agents.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 export function buildClaims(world: World) {
   const claims = new Map();
@@ -20,12 +20,12 @@ export function buildClaims(world: World) {
   return claims;
 }
 
-export function takeTicket(claims, q, r, res, capacity) {
+export function takeTicket(claims: Map<string, number>, q: number, r: number, res: string, capacity: number) {
   const k = q + ',' + r + ':' + res;
   claims.set(k, (claims.get(k) ?? 0) + capacity);
 }
 
-export function unclaimed(claims, hex, res) {
+export function unclaimed(claims: Map<string, number>, hex: Hex, res: string) {
   return hex.resources[res] - (claims.get(hex.q + ',' + hex.r + ':' + res) ?? 0);
 }
 
@@ -81,7 +81,7 @@ export function logisticsSystem(world: World) {
   }
 }
 
-export function rankedNeeds(world: World, s) {
+export function rankedNeeds(world: World, s: Settlement) {
   if (s._rankedNeedsTick === world.tick && s._rankedNeeds) {
     return s._rankedNeeds;
   }

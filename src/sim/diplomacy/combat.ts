@@ -7,7 +7,7 @@ import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, h
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
 import { makePeace } from './peace.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 // ---------- Combat (every tick) ----------
 export function combatSystem(world: World) {
@@ -39,7 +39,7 @@ export function combatSystem(world: World) {
   }
 
   const fieldDead = [];
-  const nextActiveBattles = {};
+  const nextActiveBattles: Record<string, number[]> = {};
 
   for (const [hk, soldiers] of [...hexBuckets.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)) {
     // Collect distinct factions at this hex
@@ -355,7 +355,7 @@ function healAndAttrition(world: World) {
   }
 }
 
-function captureSettlement(world: World, s, survivors) {
+function captureSettlement(world: World, s: Settlement, survivors: Agent[]) {
   if (survivors.length === 0) { s.siegeHp = 1; return; } // nobody left to take it
   const loserFid = s.factionId;
   const winnerFid = survivors[0].factionId;

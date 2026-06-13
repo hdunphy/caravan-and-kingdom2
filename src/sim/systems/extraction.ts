@@ -1,7 +1,7 @@
 // --- 1. Extraction: resources accumulate ON the hex (GDD 3.2) ---
 import { TERRAIN, ECON, GOALS, BUILDINGS, TIERS, DEFAULT_TRAITS } from '../../core/constants.js';
 import { controlledHexes } from '../settlement.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 export function extractionSystem(world: World) {
   for (const s of world.settlements) {

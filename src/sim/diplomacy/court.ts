@@ -11,7 +11,7 @@ import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultipli
 import { declareWar, pickWarGoal, recruitSoldiers, warCouncil } from './war.js';
 import { checkPeace, makePeace } from './peace.js';
 import { manageGarrison, considerGift } from './peacetime.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 export function courtSystem(world: World) {
   if (!world.diplo || world.tick % DIPLO.INTERVAL !== 0 || world.tick === 0) return;

@@ -6,10 +6,10 @@ import { homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 // ---------- Peace ----------
-export function checkPeace(world: World, war) {
+export function checkPeace(world: World, war: War) {
   const ea = war.exh[war.a], eb = war.exh[war.b];
   if (ea >= DIPLO.SUE_THRESHOLD && eb >= DIPLO.SUE_THRESHOLD) makePeace(world, war, ea >= eb ? war.a : war.b);
   else if (ea >= DIPLO.SUE_THRESHOLD) makePeace(world, war, war.a);
@@ -17,7 +17,7 @@ export function checkPeace(world: World, war) {
   else if (ea >= DIPLO.MUTUAL_THRESHOLD && eb >= DIPLO.MUTUAL_THRESHOLD) makePeace(world, war, -1);
 }
 
-export function makePeace(world: World, war, loser) {
+export function makePeace(world: World, war: War, loser: number) {
   const d = world.diplo;
   if (loser >= 0) {
     const winner = loser === war.a ? war.b : war.a;

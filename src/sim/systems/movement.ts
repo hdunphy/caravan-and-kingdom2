@@ -1,7 +1,7 @@
 // --- 3. Movement: agents advance along paths, paying terrain cost ---
 import { TERRAIN, ECON } from '../../core/constants.js';
 import { AGENT_SPEED, onArrival, cancelMission } from '../agents.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 export function movementSystem(world: World) {
   const agents = world.agents;

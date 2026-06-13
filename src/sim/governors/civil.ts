@@ -8,10 +8,10 @@ import { spawnAgent, assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
 import { findPath } from '../../core/pathfinding.js';
 import { traitsOf, getSettlerCost } from './index.js';
-import type { World } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
 
 // --- Civil Governor: construction, upgrades, expansion (GDD 4.1.1) ---
-export function civilGovernor(world: World, s) {
+export function civilGovernor(world: World, s: Settlement) {
   const tier = TIERS[s.tier];
 
   // Tier upgrade
@@ -170,7 +170,7 @@ export function civilGovernor(world: World, s) {
 // Villages pave a highway to 1 nearest friendly settlement, towns to 2,
 // cities to 3 — full routes, so the network always connects even when
 // partnering isn't mutual.
-function favoredPartners(world: World, s) {
+function favoredPartners(world: World, s: Settlement) {
   const count = s.tier === 'VILLAGE' ? 1 : s.tier === 'TOWN' ? 2 : 3;
 
   const friendly = [];
@@ -207,7 +207,7 @@ function favoredPartners(world: World, s) {
   return foreign.length > 0 ? [foreign[0].o] : [];
 }
 
-function paveRoads(world: World, s) {
+function paveRoads(world: World, s: Settlement) {
   const factionFocus = world.factions[s.factionId]?.focus ?? 'PEACE';
   if ((factionFocus === 'MOBILIZE' || factionFocus === 'WAR') && s.gold < 200) return;
 
@@ -311,7 +311,7 @@ function paveRoads(world: World, s) {
 }
 
 
-export function findColonySite(world: World, s) {
+export function findColonySite(world: World, s: Settlement) {
   let best = null, bestScore = -Infinity;
   for (const [q, r] of range(s.q, s.r, ECON.EXPAND_SEARCH_RADIUS)) {
     const hex = world.hexes.get(key(q, r));
