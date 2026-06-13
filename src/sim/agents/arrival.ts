@@ -4,6 +4,7 @@ import { ECON } from '../../core/constants.js';
 import { foundSettlement, deposit, log } from '../settlement.js';
 import { AGENT_CAPACITY, homeOf, spawnAgent, recordTrade, findFallbackSite } from './spawn.js';
 import { assignPath, cancelMission } from './movement.js';
+import { treasuryOf, addGold, spendGold } from '../economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // Called by the movement system when an agent finishes its path.
@@ -64,10 +65,10 @@ export function onArrival(world: World, agent: Agent) {
               agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
               if (home.buildings.includes('MARKET_HALL')) {
-                home.gold += Math.round(amount * 0.1);
+                addGold(world, home.factionId, Math.round(amount * 0.1));
               }
               if (seller.buildings.includes('MARKET_HALL')) {
-                seller.gold += Math.round(amount * 0.1);
+                addGold(world, seller.factionId, Math.round(amount * 0.1));
               }
               log(world, `${home.name} bartered ${amount} ${m.barterRes} for ${m.resource} with ${seller.name}`);
             }
@@ -76,17 +77,19 @@ export function onArrival(world: World, agent: Agent) {
             const unit = m.price ?? ECON.TRADE_PRICE;
             const amount = Math.min(ECON.TRADE_BATCH, Math.max(0, seller.stock[m.resource!] - 60));
             const price = Math.ceil(amount * unit);
-            if (amount > 0 && home.gold >= price) {
+            if (amount > 0 && (home.factionId === seller.factionId || treasuryOf(world, home.factionId) >= price)) {
               seller.stock[m.resource!] -= amount;
-              seller.gold += price;
-              home.gold -= price;
+              if (home.factionId !== seller.factionId) {
+                addGold(world, seller.factionId, price);
+                spendGold(world, home.factionId, price);
+              }
               agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
               if (home.buildings.includes('MARKET_HALL')) {
-                home.gold += Math.round(amount * 0.1);
+                addGold(world, home.factionId, Math.round(amount * 0.1));
               }
               if (seller.buildings.includes('MARKET_HALL')) {
-                seller.gold += Math.round(amount * 0.1);
+                addGold(world, seller.factionId, Math.round(amount * 0.1));
               }
               log(world, home.factionId === seller.factionId
                 ? `${home.name} transferred ${amount} ${m.resource} from ${seller.name}`
@@ -110,20 +113,22 @@ export function onArrival(world: World, agent: Agent) {
         if (buyer && home) {
           const unit = m.price ?? ECON.TRADE_PRICE;
           const offered = agent.cargo[m.resource!];
-          const affordable = (home.factionId === buyer.factionId || unit === 0) ? offered : Math.floor(buyer.gold / unit);
+          const affordable = (home.factionId === buyer.factionId || unit === 0) ? offered : Math.floor(treasuryOf(world, buyer.factionId) / unit);
           const sold = Math.min(offered, affordable);
           if (sold > 0) {
-            const price = home.factionId === buyer.factionId ? 0 : sold * unit;
-            buyer.gold -= price;
-            home.gold += price;
+            const price = sold * unit;
+            if (home.factionId !== buyer.factionId) {
+              spendGold(world, buyer.factionId, price);
+              addGold(world, home.factionId, price);
+            }
             agent.cargo[m.resource!] -= sold;
             deposit(buyer, { [m.resource!]: sold });
             recordTrade(world, home.factionId, buyer.factionId);
             if (home.buildings.includes('MARKET_HALL')) {
-              home.gold += Math.round(sold * 0.1);
+              addGold(world, home.factionId, Math.round(sold * 0.1));
             }
             if (buyer.buildings.includes('MARKET_HALL')) {
-              buyer.gold += Math.round(sold * 0.1);
+              addGold(world, buyer.factionId, Math.round(sold * 0.1));
             }
             log(world, home.factionId === buyer.factionId
               ? `${home.name} transferred ${sold} ${m.resource} to ${buyer.name}`

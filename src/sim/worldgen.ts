@@ -39,7 +39,7 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
     hexes: new Map(),
     settlements: [],
     agents: [],
-    factions: FACTIONS.slice(0, factionCount).map(f => ({ ...f, policy: { ...DEFAULT_POLICY } })),
+    factions: FACTIONS.slice(0, factionCount).map(f => ({ ...f, policy: { ...DEFAULT_POLICY }, treasury: ECON.GOLD_START * 3 })),
     nextId: 1,
     log: [],
     alerts: [],

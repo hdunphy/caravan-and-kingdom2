@@ -36,8 +36,25 @@ export function loadWorld(json: string): World {
     pathCache: new Map(),
   };
 
+  // Migration: if factions don't have treasury, calculate it from settlement gold
+  for (const fac of world.factions) {
+    if (fac.treasury === undefined) {
+      fac.treasury = 0;
+      for (const s of world.settlements) {
+        if (s.factionId === fac.id && (s as any).gold !== undefined) {
+          fac.treasury += (s as any).gold;
+        }
+      }
+    }
+  }
+
   // Cleanup the intermediate rngState from the final world object
   delete world.rngState;
+  
+  // Cleanup deprecated s.gold
+  for (const s of world.settlements) {
+    if ('gold' in s) delete (s as any).gold;
+  }
 
   return world;
 }

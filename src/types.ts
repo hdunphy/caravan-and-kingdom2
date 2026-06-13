@@ -13,7 +13,7 @@ export type Tier = 'VILLAGE' | 'TOWN' | 'CITY';
 
 export type Role = 'LUMBER' | 'MINING' | 'GRANARY' | 'GENERAL';
 
-export type Goal = 'SURVIVE' | 'THRIFTY' | 'UPGRADE' | 'EXPAND' | 'DEVELOP';
+export type Goal = 'SURVIVE' | 'THRIFTY' | 'UPGRADE' | 'EXPAND' | 'DEVELOP' | 'AUSTERITY';
 
 export type AgentKind = 'villager' | 'caravan' | 'settler' | 'soldier';
 
@@ -43,7 +43,6 @@ export interface Settlement {
   tier: Tier;
   population: number;
   stock: Stock;
-  gold: number;
   tools: number;
   goal: Goal;
   role: Role;
@@ -111,6 +110,7 @@ export interface Faction {
   name: string;
   color: string;
   persona: string;
+  treasury: number;
   traits: FactionTraits;
   policy?: Policy;
   [key: string]: any;

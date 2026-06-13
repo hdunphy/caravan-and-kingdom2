@@ -1,10 +1,11 @@
 // Observer HUD: faction overview, inspector panel, event log.
-import { TERRAIN, TIERS } from '../../core/constants.js';
+import { TERRAIN, TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { summarize } from '../../sim/gameLoop.js';
 import { stateOf, getRelation, strengthOf } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
 import { getPolicyLabels } from './policyLabels.js';
+import { policyOf } from '../../sim/policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 const fmt = (n: number) => Math.round(n);
@@ -275,12 +276,33 @@ export function updateHud(world: World, selected: any) {
       const s = settlement;
       const fac = world.factions[s.factionId];
       html += `<hr><b style="color:${fac.color}">${s.name}</b> — ${TIERS[s.tier].name} of ${fac.name}<br>`;
-      html += `Role: ${s.role} | Goal: <b>${s.goal}</b> | Focus: ${s.focus ?? '—'}<br>`;
-      html += `Pop: ${fmt(s.population)} | Tools: ${s.tools} | Gold: ${fmt(s.gold)}<br>`;
-      html += `<b>Stock</b> (cap ${storageCap(s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
+      // Calculate net gold
+      const taxRate = policyOf(world, s.factionId).taxRate;
+      const taxes = s.population * ECON.TAX_PER_POP * taxRate;
+      const soldiers = world.agents.filter(a => a.homeId === s.id && a.type === 'soldier');
+      const wages = soldiers.length * DIPLO.WAGE_SOLDIER;
+      
       const built = controlledHexes(world, s).filter(h => h.building).map(h => h.building);
       const all = [...built, ...s.buildings];
-      if (all.length) html += `Buildings: ${all.join(', ')}<br>`;
+      let upkeep = 0;
+      for (const b of all) {
+        if (b === 'MARKET_HALL') upkeep += BUILDINGS.MARKET_HALL.upkeep;
+        if (b === 'FISHERY') upkeep += BUILDINGS.FISHERY.upkeep;
+        if (b === 'WAREHOUSE') upkeep += BUILDINGS.WAREHOUSE.upkeep;
+      }
+      const net = taxes - wages - upkeep;
+      const netStr = net >= 0 ? `+${net.toFixed(1)}/t` : `${net.toFixed(1)}/t`;
+      const netColor = net >= 0 ? '#2ecc71' : '#e74c3c';
+
+      html += `Role: ${s.role} | Goal: <b>${s.goal}</b> | Focus: ${s.focus ?? '—'}<br>`;
+      html += `Pop: ${fmt(s.population)} | Tools: ${s.tools} | Net Gold: <span style="color:${netColor};">${netStr}</span><br>`;
+      html += `<b>Stock</b> (cap ${storageCap(s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
+      if (all.length) {
+        const counts: Record<string, number> = {};
+        for (const b of all) counts[b] = (counts[b] || 0) + 1;
+        const consolidated = Object.entries(counts).map(([b, c]) => c > 1 ? `${b} x${c}` : b);
+        html += `Buildings: ${consolidated.join(', ')}<br>`;
+      }
       const agents = world.agents.filter(a => a.homeId === s.id);
       html += `Agents: ${agents.filter(a => a.type === 'villager').length} villagers, ` +
               `${agents.filter(a => a.type === 'caravan').length} caravans ` +

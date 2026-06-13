@@ -6,6 +6,7 @@ import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
+import { treasuryOf, spendGold } from '../economy.js';
 import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
@@ -126,7 +127,14 @@ export function pickWarGoal(world: World, fid: number, enemyFid: number) {
 
 export function recruitSoldiers(world: World, fid: number, target: number) {
   const policy = policyOf(world, fid);
-  const adjustedTarget = target * policy.recruitment;
+  const isPlayer = fid === world.playerFactionId;
+  
+  let adjustedTarget = target * policy.recruitment;
+  if (isPlayer) {
+    const totalPop = settlementsF(world, fid).reduce((sum, s) => sum + s.population, 0);
+    adjustedTarget = (totalPop / 15) * policy.recruitment;
+  }
+
   let count = soldiersOf(world, fid).length;
   if (count >= adjustedTarget) return;
 
@@ -139,8 +147,8 @@ export function recruitSoldiers(world: World, fid: number, target: number) {
     const c = DIPLO.SOLDIER_COST;
     let recruited = 0;
     while (recruited < maxPerSettlement && count < adjustedTarget && s.population > 40 + DIPLO.SOLDIER_POP_COST) {
-      if (s.stock.food >= c.food && s.stock.ore >= c.ore && s.gold >= c.gold) {
-        s.stock.food -= c.food; s.stock.ore -= c.ore; s.gold -= c.gold;
+      if (s.stock.food >= c.food && s.stock.ore >= c.ore && treasuryOf(world, s.factionId) >= c.gold) {
+        s.stock.food -= c.food; s.stock.ore -= c.ore; spendGold(world, s.factionId, c.gold);
         s.population -= DIPLO.SOLDIER_POP_COST;
         spawnAgent(world, 'soldier', fid, s.id, s.q, s.r);
         count++;

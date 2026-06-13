@@ -8,6 +8,7 @@ import { findColonySite } from '../governors.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
+import { treasuryOf, spendGold, addGold } from '../economy.js';
 import { declareWar, pickWarGoal, recruitSoldiers, warCouncil } from './war.js';
 import { checkPeace, makePeace } from './peace.js';
 import { manageGarrison, considerGift } from './peacetime.js';
@@ -25,6 +26,25 @@ export function courtSystem(world: World) {
     
     if (!fac.policy) fac.policy = { ...DEFAULT_POLICY };
     const traits = traitsF(world, fac.id);
+    
+    if (treasuryOf(world, fac.id) <= -ECON.DEBT_AUSTERITY) {
+      const mySoldiers = world.agents.filter(a => a.factionId === fac.id && a.type === 'soldier');
+      const minGarrison = settlementsF(world, fac.id).length;
+      if (mySoldiers.length > minGarrison) {
+        const excess = mySoldiers.slice(minGarrison);
+        world.agents = world.agents.filter(a => !excess.find(e => e.id === a.id));
+        log(world, `${fac.name} disbanded ${excess.length} soldiers due to debt austerity.`);
+      }
+      fac.policy.taxRate = 1.5; // High taxes
+      fac.policy.expansion = 0; // Stop expanding
+      fac.policy.recruitment = 0; // Stop recruiting
+      fac.policy.tradeStance = 2.0; // Bias exporting
+      fac.policy.garrison = 0.5;
+      fac.policy.rations = 1.0;
+      fac.policy.militaryStance = 'DEFENSIVE';
+      continue;
+    }
+
     fac.policy.expansion = traits.expand ?? 1.0;
     fac.policy.tradeStance = traits.trade ?? 1.0;
     fac.policy.recruitment = traits.aggression ?? 1.0;
@@ -417,27 +437,21 @@ export function courtSystem(world: World) {
 
     // B. Tribute payment & Annexation (faction-level, not per-settlement)
     if (masterSettlements.length > 0) {
-      const masterSettlement = masterSettlements[0];
-
-      // Sum total gold across all vassal settlements
-      const totalFactionGold = mySettlements.reduce((sum, s) => sum + s.gold, 0);
-      const totalTribute = Math.floor(totalFactionGold * DIPLO.VASSAL_TRIBUTE_PCT);
-
-      if (totalFactionGold < 20) {
+      const totalTribute = Math.floor(Math.max(0, treasuryOf(world, fac.id)) * DIPLO.TRIBUTE_RATE);
+      if (totalTribute > 0) {
+        spendGold(world, fac.id, totalTribute);
+        addGold(world, masterFac.id, totalTribute);
+        log(world, `${fac.name} paid ${totalTribute}g tribute to ${masterFac.name}`);
+      } else if (treasuryOf(world, fac.id) < 0) {
         // Faction as a whole cannot pay — annexation
         log(world, `!!! ANNEXATION !!! ${fac.name} was unable to pay tribute. They have forfeited their lands and been annexed by ${masterFac.name}!`);
-        for (const s of mySettlements) s.factionId = masterId;   // ALL settlements
-        world.agents = world.agents.filter(a => a.factionId !== fid);
-        fac.eliminated = true;
-        world.diplo.wars = world.diplo.wars.filter(w => w.a !== fid && w.b !== fid);
-      } else if (totalTribute > 0) {
-        // Collect proportionally from each settlement so no single town is drained
         for (const s of mySettlements) {
-          const share = Math.floor((s.gold / totalFactionGold) * totalTribute);
-          s.gold -= share;
-          masterSettlement.gold += share;
+          s.factionId = masterFac.id;
         }
-        log(world, `${fac.name} paid ${totalTribute}g tribute to their overlord, ${masterFac.name}.`);
+        for (const a of world.agents) {
+          if (a.factionId === fac.id) a.factionId = masterFac.id;
+        }
+        fac.eliminated = true;
       }
     }
   }

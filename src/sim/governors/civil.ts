@@ -4,6 +4,7 @@
 import { key, distance, range } from '../../core/hex.js';
 import { TERRAIN, TIERS, BUILDINGS, ECON, GOALS, ROLES } from '../../core/constants.js';
 import { controlledHexes, computeRole, claimTerritory, canAfford, pay, storageCap, log } from '../settlement.js';
+import { treasuryOf } from '../economy.js';
 import { spawnAgent, assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
 import { findPath } from '../../core/pathfinding.js';
@@ -15,8 +16,8 @@ export function civilGovernor(world: World, s: Settlement) {
   const tier = TIERS[s.tier];
 
   // Tier upgrade
-  if (s.goal === GOALS.UPGRADE && tier.next && canAfford(s, tier.upgradeCost)) {
-    pay(s, tier.upgradeCost);
+  if (s.goal === GOALS.UPGRADE && tier.next && canAfford(world, s, tier.upgradeCost)) {
+    pay(world, s, tier.upgradeCost);
     s.tier = tier.next as Tier;
     claimTerritory(world, s);
     world.pathCache?.clear();
@@ -27,10 +28,10 @@ export function civilGovernor(world: World, s: Settlement) {
 
   // Dispatch settler
   const sCost = getSettlerCost(world, s.factionId);
-  if (s.goal === GOALS.EXPAND && !s.pendingSettler && canAfford(s, sCost)) {
+  if (s.goal === GOALS.EXPAND && !s.pendingSettler && canAfford(world, s, sCost)) {
     const site = findColonySite(world, s);
     if (site) {
-      pay(s, sCost);
+      pay(world, s, sCost);
       s.population -= ECON.SETTLER_POP;
       const settler = spawnAgent(world, 'settler', s.factionId, s.id, s.q, s.r);
       if (assignPath(world, settler, site.q, site.r)) {
@@ -49,11 +50,11 @@ export function civilGovernor(world: World, s: Settlement) {
   const hasFoodBuilding = controlledHexes(world, s).some(h => h.building === 'GATHERERS_HUT' || h.building === 'FISHERY');
   if (!hasFoodBuilding) {
     const hut = BUILDINGS.GATHERERS_HUT;
-    if (canAfford(s, hut.cost)) {
+    if (canAfford(world, s, hut.cost)) {
       const hex = controlledHexes(world, s).find(h =>
         h.terrain === hut.terrain && !h.building && !(h.q === s.q && h.r === s.r));
       if (hex) {
-        pay(s, hut.cost);
+        pay(world, s, hut.cost);
         hex.building = 'GATHERERS_HUT';
         hex.buildingIntegrity = 100;
         log(world, `${s.name} built a Gatherer's Hut (essential food source)`);
@@ -61,7 +62,7 @@ export function civilGovernor(world: World, s: Settlement) {
       }
     }
     const fish = BUILDINGS.FISHERY;
-    if (canAfford(s, fish.cost)) {
+    if (canAfford(world, s, fish.cost)) {
       const hex = controlledHexes(world, s).find(h =>
         h.terrain === 'WATER' && !h.building &&
         [...range(h.q, h.r, 1)].some(([q, r]) => {
@@ -69,7 +70,7 @@ export function civilGovernor(world: World, s: Settlement) {
           return nb && nb.terrain !== 'WATER';
         }));
       if (hex) {
-        pay(s, fish.cost);
+        pay(world, s, fish.cost);
         hex.building = 'FISHERY';
         hex.buildingIntegrity = 100;
         log(world, `${s.name} built a Fishing Dock (essential food source)`);
@@ -82,10 +83,10 @@ export function civilGovernor(world: World, s: Settlement) {
   if (s.goal === GOALS.SURVIVE || s.goal === GOALS.THRIFTY || s.goal === GOALS.UPGRADE) return;
 
   const factionFocus = world.factions[s.factionId]?.focus ?? 'PEACE';
-  if ((factionFocus === 'MOBILIZE' || factionFocus === 'WAR') && s.gold < 200) {
+  if ((factionFocus === 'MOBILIZE' || factionFocus === 'WAR') && treasuryOf(world, s.factionId) < 200) {
     const hasSmithy = controlledHexes(world, s).some(h => h.building === 'SMITHY');
-    if (hasSmithy && s.tools < ECON.MAX_TOOLS && canAfford(s, ECON.TOOL_COST)) {
-      pay(s, ECON.TOOL_COST);
+    if (hasSmithy && s.tools < ECON.MAX_TOOLS && canAfford(world, s, ECON.TOOL_COST)) {
+      pay(world, s, ECON.TOOL_COST);
       s.tools++;
     }
     return;
@@ -93,8 +94,8 @@ export function civilGovernor(world: World, s: Settlement) {
 
   // Craft tools at a smithy
   const hasSmithy = controlledHexes(world, s).some(h => h.building === 'SMITHY');
-  if (hasSmithy && s.tools < ECON.MAX_TOOLS && canAfford(s, ECON.TOOL_COST)) {
-    pay(s, ECON.TOOL_COST);
+  if (hasSmithy && s.tools < ECON.MAX_TOOLS && canAfford(world, s, ECON.TOOL_COST)) {
+    pay(world, s, ECON.TOOL_COST);
     s.tools++;
   }
 
@@ -102,8 +103,8 @@ export function civilGovernor(world: World, s: Settlement) {
   const cap = storageCap(s);
   const totalStock = s.stock.food + s.stock.timber + s.stock.stone + s.stock.ore;
   const warehouses = s.buildings.filter(b => b === 'WAREHOUSE').length;
-  if (warehouses < 3 && totalStock > cap * 0.8 && canAfford(s, BUILDINGS.WAREHOUSE.cost)) {
-    pay(s, BUILDINGS.WAREHOUSE.cost);
+  if (warehouses < 3 && totalStock > cap * 0.8 && canAfford(world, s, BUILDINGS.WAREHOUSE.cost)) {
+    pay(world, s, BUILDINGS.WAREHOUSE.cost);
     s.buildings.push('WAREHOUSE');
     log(world, `${s.name} built a Warehouse`);
     return;
@@ -111,8 +112,8 @@ export function civilGovernor(world: World, s: Settlement) {
 
   // Market Hall when population and treasury allow (Town/City only)
   const hasMarket = s.buildings.includes('MARKET_HALL');
-  if (!hasMarket && s.tier !== 'VILLAGE' && s.gold >= 80 && canAfford(s, BUILDINGS.MARKET_HALL.cost)) {
-    pay(s, BUILDINGS.MARKET_HALL.cost);
+  if (!hasMarket && s.tier !== 'VILLAGE' && treasuryOf(world, s.factionId) >= 80 && canAfford(world, s, BUILDINGS.MARKET_HALL.cost)) {
+    pay(world, s, BUILDINGS.MARKET_HALL.cost);
     s.buildings.push('MARKET_HALL');
     log(world, `${s.name} built a Market Hall`);
     return;
@@ -138,8 +139,8 @@ export function civilGovernor(world: World, s: Settlement) {
           const nb = world.hexes.get(key(q, r));
           return nb && nb.terrain !== 'WATER';
         }));
-      if (dockHex && canAfford(s, BUILDINGS.FISHERY.cost)) {
-        pay(s, BUILDINGS.FISHERY.cost);
+      if (dockHex && canAfford(world, s, BUILDINGS.FISHERY.cost)) {
+        pay(world, s, BUILDINGS.FISHERY.cost);
         dockHex.building = 'FISHERY';
         dockHex.buildingIntegrity = 100;
         log(world, `${s.name} built a Fishing Dock`);
@@ -148,11 +149,11 @@ export function civilGovernor(world: World, s: Settlement) {
     }
     const bKey = buildingFor[res];
     const b = (BUILDINGS as Record<string, any>)[bKey];
-    if (!canAfford(s, b.cost)) continue;
+    if (!canAfford(world, s, b.cost)) continue;
     const hex = controlledHexes(world, s).find(h =>
       h.terrain === b.terrain && !h.building && !(h.q === s.q && h.r === s.r));
     if (hex) {
-      pay(s, b.cost);
+      pay(world, s, b.cost);
       hex.building = bKey;
       hex.buildingIntegrity = 100;
       log(world, `${s.name} built a ${b.name}`);
@@ -209,7 +210,7 @@ function favoredPartners(world: World, s: Settlement) {
 
 function paveRoads(world: World, s: Settlement) {
   const factionFocus = world.factions[s.factionId]?.focus ?? 'PEACE';
-  if ((factionFocus === 'MOBILIZE' || factionFocus === 'WAR') && s.gold < 200) return;
+  if ((factionFocus === 'MOBILIZE' || factionFocus === 'WAR') && treasuryOf(world, s.factionId) < 200) return;
 
   const reach = TIERS[s.tier].radius + 2;
 
@@ -256,14 +257,14 @@ function paveRoads(world: World, s: Settlement) {
     if (hex.terrain === 'RIVER') {
       if (s.stock.timber < ECON.BRIDGE_COST.timber + buffer ||
         s.stock.stone < ECON.BRIDGE_COST.stone + buffer) break;
-      pay(s, ECON.BRIDGE_COST);
+      pay(world, s, ECON.BRIDGE_COST);
       hex.hasBridge = true;
       hex.hasRoad = true;
       hex.roadIntegrity = 100;
     } else {
       if (s.stock.timber < ECON.ROAD_COST.timber + buffer ||
         s.stock.stone < ECON.ROAD_COST.stone + buffer) break;
-      pay(s, ECON.ROAD_COST);
+      pay(world, s, ECON.ROAD_COST);
       hex.hasRoad = true;
       hex.roadIntegrity = 100;
     }
@@ -293,7 +294,7 @@ function paveRoads(world: World, s: Settlement) {
     if (best.terrain === 'RIVER') {
       if (s.stock.timber < ECON.BRIDGE_COST.timber + buffer ||
         s.stock.stone < ECON.BRIDGE_COST.stone + buffer) return;
-      pay(s, ECON.BRIDGE_COST);
+      pay(world, s, ECON.BRIDGE_COST);
       best.hasBridge = true;
       best.hasRoad = true;
       best.roadIntegrity = 100;
@@ -301,7 +302,7 @@ function paveRoads(world: World, s: Settlement) {
     } else {
       if (s.stock.timber < ECON.ROAD_COST.timber + buffer ||
         s.stock.stone < ECON.ROAD_COST.stone + buffer) return;
-      pay(s, ECON.ROAD_COST);
+      pay(world, s, ECON.ROAD_COST);
       best.hasRoad = true;
       best.roadIntegrity = 100;
       log(world, `${s.name} paved a road at (${best.q},${best.r})`);

@@ -10,6 +10,7 @@ import { transportGovernor } from './transport.js';
 import { tradeGovernor } from './trade.js';
 import { policyOf } from '../policy.js';
 import { pushAlert } from '../settlement.js';
+import { treasuryOf } from '../economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export { findColonySite } from './civil.js';
@@ -50,6 +51,7 @@ export function evaluateGoal(world: World, s: Settlement) {
   const factionFocus = world.factions[s.factionId]?.focus ?? 'PEACE';
 
   if (foodDays < 15) { s.goal = GOALS.SURVIVE; return; }
+  if (treasuryOf(world, s.factionId) <= -ECON.DEBT_AUSTERITY) { s.goal = GOALS.AUSTERITY; return; }
   if (totalStock < 100) { s.goal = GOALS.THRIFTY; return; }
 
   if (factionFocus === 'MOBILIZE' || factionFocus === 'WAR') {

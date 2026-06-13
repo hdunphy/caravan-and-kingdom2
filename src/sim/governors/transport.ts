@@ -2,6 +2,7 @@
 import { distance } from '../../core/hex.js';
 import { TIERS, ECON, GOALS } from '../../core/constants.js';
 import { controlledHexes, canAfford, pay, log } from '../settlement.js';
+import { treasuryOf } from '../economy.js';
 import { spawnAgent, assignPath, AGENT_CAPACITY } from '../agents.js';
 import { unclaimed, takeTicket } from '../systems.js';
 import { traitsOf } from './index.js';
@@ -15,8 +16,8 @@ export function transportGovernor(world: World, s: Settlement) {
   const maxCaravans = base + (traitsOf(world, s).trade >= 1.4 ? 1 : 0);
 
   if (caravans.length < maxCaravans && s.goal !== GOALS.SURVIVE && s.goal !== GOALS.THRIFTY
-    && s.gold >= ECON.RECRUIT_GOLD_BUFFER && canAfford(s, ECON.CARAVAN_COST)) {
-    pay(s, ECON.CARAVAN_COST);
+    && treasuryOf(world, s.factionId) >= ECON.RECRUIT_GOLD_BUFFER && canAfford(world, s, ECON.CARAVAN_COST)) {
+    pay(world, s, ECON.CARAVAN_COST);
     spawnAgent(world, 'caravan', s.factionId, s.id, s.q, s.r);
     log(world, `${s.name} assembled a caravan`);
   }

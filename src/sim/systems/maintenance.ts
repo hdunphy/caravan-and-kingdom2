@@ -2,6 +2,7 @@
 import { ECON, DIPLO } from '../../core/constants.js';
 import { controlledHexes, log, pushAlert } from '../settlement.js';
 import { homeOf } from '../agents.js';
+import { spendGold } from '../economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function maintenanceSystem(world: World) {
@@ -64,38 +65,25 @@ export function maintenanceSystem(world: World) {
   }
   world.agents = world.agents.filter(a => a.type !== 'caravan' || a.integrity > 0);
 
-  // Wages: every agent draws pay from its home treasury. An empty treasury
-  // means unpaid workers, who may desert (gold sink, balances tax income).
-  const deserters = new Set();
+  // Wages and upkeep: billed to the faction treasury once per tick
+  const factionBills = new Map<number, number>();
+  
   for (const s of world.settlements) {
     const staff = world.agents.filter(a => a.homeId === s.id && a.type !== 'settler');
-    let bill = 0;
+    let localBill = 0;
     for (const a of staff) {
-      bill += a.type === 'caravan' ? ECON.WAGE_CARAVAN :
+      localBill += a.type === 'caravan' ? ECON.WAGE_CARAVAN :
         a.type === 'soldier' ? DIPLO.WAGE_SOLDIER : ECON.WAGE_VILLAGER;
     }
-    // Building upkeep: rich settlements pay it; poor ones defer maintenance
-    if (s.gold >= 20) {
-      const buildingCount = controlledHexes(world, s).filter(h => h.building).length + s.buildings.length;
-      bill += buildingCount * ECON.BUILDING_UPKEEP_GOLD;
-    }
-    if (s.gold >= bill) {
-      s.gold -= bill;
-    } else {
-      pushAlert(world, { severity: 'IMPORTANT', factionId: s.factionId, type: 'BANKRUPT', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} treasury is empty! Workers are deserting.` });
-      s.gold = 0;
-      let villagersLeft = staff.filter(a => a.type === 'villager').length;
-      for (const a of staff) {
-        if (a.type === 'villager' && villagersLeft <= ECON.DESERTION_FLOOR) continue;
-        if (world.rng.chance(ECON.DESERTION_CHANCE)) {
-          deserters.add(a.id);
-          if (a.type === 'villager') villagersLeft--;
-        }
-      }
-    }
+    const buildingCount = controlledHexes(world, s).filter(h => h.building).length + s.buildings.length;
+    localBill += buildingCount * ECON.BUILDING_UPKEEP_GOLD;
+    
+    factionBills.set(s.factionId, (factionBills.get(s.factionId) || 0) + localBill);
   }
-  if (deserters.size > 0) {
-    world.agents = world.agents.filter(a => !deserters.has(a.id));
-    log(world, `${deserters.size} unpaid worker(s) deserted`);
+  
+  for (const [fid, bill] of factionBills.entries()) {
+    if (bill > 0) {
+      spendGold(world, fid, bill);
+    }
   }
 }
