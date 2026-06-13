@@ -9,6 +9,7 @@ import { laborGovernor } from './labor.js';
 import { transportGovernor } from './transport.js';
 import { tradeGovernor } from './trade.js';
 import { policyOf } from '../policy.js';
+import { pushAlert } from '../settlement.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export { findColonySite } from './civil.js';
@@ -59,7 +60,11 @@ export function evaluateGoal(world: World, s: Settlement) {
   const policy = policyOf(world, s.factionId);
   if (tier.next && s.population > tier.popCap * ECON.UPGRADE_TRIGGER_POP) { s.goal = GOALS.UPGRADE; return; }
   if (s.population >= ECON.EXPAND_MIN_POP / policy.expansion && s.tier !== 'VILLAGE' && !s.pendingSettler) {
-    s.goal = GOALS.EXPAND; return;
+    if (findColonySite(world, s)) {
+      s.goal = GOALS.EXPAND; return;
+    } else {
+      pushAlert(world, { type: 'STAGNANT', tick: world.tick, targetId: s.id, msg: `${s.name} is boxed in and cannot expand!` });
+    }
   }
   s.goal = GOALS.DEVELOP;
 }

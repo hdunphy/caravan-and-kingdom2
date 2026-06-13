@@ -32,6 +32,32 @@ export function updateHud(world: World, selected: any) {
   bindFilterEvents();
   document.getElementById('tick')!.textContent = `Tick ${world.tick}`;
 
+  // Alerts rendering
+  const alertsPanel = document.getElementById('alerts-panel');
+  if (alertsPanel) {
+    if (world.alerts && world.alerts.length > 0) {
+      alertsPanel.innerHTML = world.alerts.map(a => {
+        let color = '#e74c3c';
+        let icon = '⚠';
+        if (a.type === 'STARVATION') { color = '#e67e22'; icon = '🍽'; }
+        if (a.type === 'BANKRUPT') { color = '#f1c40f'; icon = '💸'; }
+        if (a.type === 'SIEGE') { color = '#e74c3c'; icon = '⚔'; }
+        if (a.type === 'STAGNANT') { color = '#9b59b6'; icon = '🛑'; }
+        return `
+          <div style="background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px;">
+            <span style="font-size: 14px;">${icon}</span>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <b style="color: ${color}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${a.type}</b>
+              <span>${a.msg}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      alertsPanel.innerHTML = '';
+    }
+  }
+
   // Faction overview
   const summaries = summarize(world);
   const maxPop = Math.max(1, ...summaries.map(s => s.population));

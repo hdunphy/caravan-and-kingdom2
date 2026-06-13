@@ -18,6 +18,10 @@ export function step(world: World) {
   combatSystem(world);
   maintenanceSystem(world);
   sampleHistory(world);
+  
+  // Age out alerts that haven't been refreshed
+  world.alerts = (world.alerts ?? []).filter(a => world.tick - a.tick < 15);
+  
   world.bordersDirty = false;
   return world;
 }

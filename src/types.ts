@@ -141,6 +141,13 @@ export interface LogEvent {
   msg: string;
 }
 
+export interface Alert {
+  type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT';
+  tick: number;
+  targetId?: number;
+  msg: string;
+}
+
 export interface World {
   seed: number;
   tick: number;
@@ -152,6 +159,7 @@ export interface World {
   factions: Faction[];
   nextId: number;
   log: LogEvent[];
+  alerts: Alert[];
   history: { interval: number; samples: HistorySample[] };
   diplo: Diplo;
   stats: { trades: Record<number, number>; captures: Record<number, number> };
