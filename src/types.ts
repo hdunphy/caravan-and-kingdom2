@@ -141,10 +141,26 @@ export interface LogEvent {
   msg: string;
 }
 
+export type AlertSeverity = 'INFO' | 'IMPORTANT' | 'CRITICAL';
+export interface Alert {
+  type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT'
+      | 'WAR_DECLARED' | 'SETTLEMENT_LOST' | 'SETTLEMENT_CAPTURED'
+      | 'PEACE_SIGNED' | 'EXHAUSTION_HIGH' | 'DIPLO';
+  severity: AlertSeverity;
+  factionId: number | null;
+  tick: number;
+  targetId?: number;
+  q?: number;
+  r?: number;
+  msg: string;
+  acknowledged?: boolean;
+}
+
 export interface World {
   seed: number;
   tick: number;
   mapRadius: number;
+  playerFactionId: number | null;
   rng: ReturnType<typeof import('./core/rng.js').makeRng>;
   hexes: Map<string, Hex>;
   settlements: Settlement[];
@@ -152,6 +168,7 @@ export interface World {
   factions: Faction[];
   nextId: number;
   log: LogEvent[];
+  alerts: Alert[];
   history: { interval: number; samples: HistorySample[] };
   diplo: Diplo;
   stats: { trades: Record<number, number>; captures: Record<number, number> };

@@ -42,9 +42,11 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
     factions: FACTIONS.slice(0, factionCount).map(f => ({ ...f, policy: { ...DEFAULT_POLICY } })),
     nextId: 1,
     log: [],
+    alerts: [],
     history: { interval: 25, samples: [] },
     diplo: { relations: {}, tradeCounts: {}, wars: [], truces: {} },
     stats: { trades: {}, captures: {} },
+    playerFactionId: null,
     pathCache: new Map(),
   };
 

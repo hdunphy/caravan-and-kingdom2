@@ -5,11 +5,14 @@ import { assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
 import { canTrade, tradePrice, stateOf } from '../diplomacy.js';
 import { traitsOf } from './index.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // --- Trade Governor: buy scarce resources, export surpluses (GDD 4.1.4) ---
 export function tradeGovernor(world: World, s: Settlement) {
   if (s.siegeHp != null) return; // under siege: trade is cut off
+  const policy = policyOf(world, s.factionId);
+  if (policy.tradeStance === 0) return; // autarky
   const survival = s.goal === GOALS.SURVIVE;
   const idle = world.agents.filter(a =>
     a.homeId === s.id && a.type === 'caravan' && a.state === 'idle' &&
@@ -23,7 +26,7 @@ export function tradeGovernor(world: World, s: Settlement) {
   for (const res of buyNeeds) {
     const upgradeNeed = (s.goal === GOALS.UPGRADE && TIERS[s.tier].next)
       ? ((TIERS[s.tier].upgradeCost as Record<string, number> | null)?.[res] ?? 0) + 40 : 0;
-    const target = Math.max(40, upgradeNeed);
+    const target = Math.max(40, upgradeNeed) * policy.tradeStance;
     if (s.stock[res] >= target) continue;
 
     // Market Hall trade range bonus
@@ -77,12 +80,11 @@ export function tradeGovernor(world: World, s: Settlement) {
 
   // Export surpluses to needy neighbors (inbound gold) — this keeps gold
   // circulating so trade doesn't starve after the first purchase.
-  const tradeTrait = traitsOf(world, s).trade;
   const hasMarket = s.buildings.includes('MARKET_HALL');
   const tradeRange = hasMarket ? ECON.TRADE_RANGE * 1.5 : ECON.TRADE_RANGE;
 
   for (const res of ['timber', 'stone', 'food', 'ore']) {
-    if (s.stock[res] < ECON.TRADE_SURPLUS_MIN / tradeTrait) continue;
+    if (s.stock[res] < ECON.TRADE_SURPLUS_MIN / policy.tradeStance) continue;
     const buyer = world.settlements
       .filter(o => o.id !== s.id && o.stock[res] < 100 && o.siegeHp == null &&
         (o.factionId === s.factionId || o.gold >= ECON.TRADE_PRICE * 5) &&

@@ -1,6 +1,6 @@
 // --- 5. Maintenance: integrity decay, repairs, tool breakage (GDD 3.1, 5.2) ---
 import { ECON, DIPLO } from '../../core/constants.js';
-import { controlledHexes, log } from '../settlement.js';
+import { controlledHexes, log, pushAlert } from '../settlement.js';
 import { homeOf } from '../agents.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
@@ -82,6 +82,7 @@ export function maintenanceSystem(world: World) {
     if (s.gold >= bill) {
       s.gold -= bill;
     } else {
+      pushAlert(world, { severity: 'IMPORTANT', factionId: s.factionId, type: 'BANKRUPT', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} treasury is empty! Workers are deserting.` });
       s.gold = 0;
       let villagersLeft = staff.filter(a => a.type === 'villager').length;
       for (const a of staff) {

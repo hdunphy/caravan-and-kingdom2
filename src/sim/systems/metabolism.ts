@@ -1,6 +1,7 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
 import { ECON, TIERS, DIPLO } from '../../core/constants.js';
-import { log } from '../settlement.js';
+import { log, pushAlert } from '../settlement.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function metabolismSystem(world: World) {
@@ -19,10 +20,15 @@ export function metabolismSystem(world: World) {
     if (factionFocus === 'MOBILIZE' || factionFocus === 'WAR') {
       taxBonus = DIPLO.MOBILIZATION_TAX_BONUS;
     }
-    s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus;
+    const policy = policyOf(world, s.factionId);
+    s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus * policy.taxRate;
 
     const besieged = s.siegeHp != null;
-    let need = s.population * ECON.FOOD_PER_POP;
+    if (besieged) {
+      pushAlert(world, { severity: 'IMPORTANT', factionId: s.factionId, type: 'SIEGE', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} is under siege!` });
+    }
+    
+    let need = s.population * ECON.FOOD_PER_POP * policy.rations;
     if (besieged) need *= 0.5; // siege rations: the blockade starves slowly, not instantly
     if (s.stock.food >= need) {
       s.stock.food -= need;
@@ -37,9 +43,13 @@ export function metabolismSystem(world: World) {
         if (factionFocus === 'MOBILIZE' || factionFocus === 'WAR') {
           growthPenalty = DIPLO.MOBILIZATION_GROWTH_PENALTY;
         }
+        if (policy.taxRate > 1.2) growthPenalty *= 0.9;
+        if (policy.rations < 0.8) growthPenalty *= 0.9;
         s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty;
       }
     } else {
+      const foodDays = Math.max(0, s.stock.food) / Math.max(0.05, need);
+      pushAlert(world, { severity: foodDays < 3 ? 'CRITICAL' : 'IMPORTANT', factionId: s.factionId, type: 'STARVATION', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} is starving!` });
       s.stock.food = 0;
       // Starvation scales with how many mouths go unfed
       s.population = Math.max(0, s.population - (0.05 + s.population * 0.0008));

@@ -1,7 +1,7 @@
 // Settlement lifecycle: founding, tiers, roles, territory, stock helpers.
 import { key, range } from '../core/hex.js';
 import { TIERS, ROLES, GOALS, ECON, BUILDINGS } from '../core/constants.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy, Alert } from '../types.js';
 
 const NAME_PARTS_A = ['Ald', 'Bren', 'Cor', 'Dun', 'Eld', 'Fen', 'Gold', 'Hav', 'Iron', 'Karn', 'Lor', 'Mer', 'Nor', 'Oak', 'Pell', 'Quill', 'Rav', 'Stone', 'Thorn', 'Vale'];
 const NAME_PARTS_B = ['burg', 'dale', 'ford', 'haven', 'holm', 'mark', 'mere', 'stead', 'ton', 'wick'];
@@ -115,4 +115,15 @@ export function settlementAt(world: World, q: number, r: number): Settlement | u
 export function log(world: World, msg: string) {
   world.log.push({ tick: world.tick, msg });
   if (world.log.length > 200) world.log.shift();
+}
+
+export function pushAlert(world: World, alert: Alert) {
+  world.alerts = world.alerts ?? [];
+  const existing = world.alerts.findIndex(a => a.type === alert.type && a.targetId === alert.targetId);
+  if (existing !== -1) {
+    world.alerts[existing].tick = world.tick; // refresh
+    world.alerts[existing].msg = alert.msg;
+  } else {
+    world.alerts.push(alert);
+  }
 }

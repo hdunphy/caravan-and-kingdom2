@@ -3,6 +3,7 @@ import { TIERS, ECON, GOALS } from '../../core/constants.js';
 import { canAfford, pay } from '../settlement.js';
 import { spawnAgent } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function laborGovernor(world: World, s: Settlement) {
@@ -20,7 +21,8 @@ export function laborGovernor(world: World, s: Settlement) {
   const idle = mine.filter(a => a.state === 'idle').length;
   // Demand-aware hiring: idle hands mean labor already outstrips extraction
   if (idle >= 2) return;
-  const maxVillagers = Math.min(TIERS[s.tier].jobCap, Math.floor(s.population / 3));
+  const policy = policyOf(world, s.factionId);
+  const maxVillagers = Math.min(TIERS[s.tier].jobCap, Math.floor(s.population / 3)) * policy.recruitment;
   if (villagers < maxVillagers && s.gold >= ECON.RECRUIT_GOLD_BUFFER && canAfford(s, ECON.VILLAGER_COST)) {
     pay(s, ECON.VILLAGER_COST);
     spawnAgent(world, 'villager', s.factionId, s.id, s.q, s.r);

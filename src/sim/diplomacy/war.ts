@@ -1,12 +1,37 @@
 // ---------- War conduct ----------
 import { key, distance } from '../../core/hex.js';
 import { DIPLO, ECON, TERRAIN } from '../../core/constants.js';
-import { log, controlledHexes } from '../settlement.js';
+import { log, controlledHexes, pushAlert } from '../settlement.js';
 import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
+import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
+
+export function playerDeclareWar(world: World, targetId: number) {
+  if (world.playerFactionId == null) return;
+  const fid = world.playerFactionId;
+  
+  if (atWar(world, fid, targetId)) return;
+  if ((world.diplo.truces[pairKey(fid, targetId)] ?? 0) > world.tick) return;
+  
+  const army = armyCap(world, fid);
+  const activeWars = world.diplo.wars.filter(w => w.a === fid || w.b === fid).length;
+  const requiredWarChest = army * DIPLO.WAGE_SOLDIER * 1500 * (activeWars + 1);
+  const currentGold = goldF(world, fid);
+  
+  if (currentGold < requiredWarChest) {
+    pushAlert(world, { severity: 'INFO', factionId: fid, type: 'DIPLO', tick: world.tick, msg: `Not enough gold to fund the war chest! Need ${Math.round(requiredWarChest)}g.` });
+    return;
+  }
+  
+  const goal = pickWarGoal(world, fid, targetId);
+  if (goal) {
+    log(world, `${world.factions[fid].name} formally declared WAR on ${world.factions[targetId].name}!`);
+    declareWar(world, fid, targetId, goal.id, true);
+  }
+}
 
 export function declareWar(world: World, attackerId: number, defenderId: number, goalId: number, isInitial = false) {
   if (atWar(world, attackerId, defenderId)) return;
@@ -27,6 +52,10 @@ export function declareWar(world: World, attackerId: number, defenderId: number,
   });
 
   addRelation(world, attackerId, defenderId, DIPLO.DECLARE_WAR_PENALTY);
+  
+  const msg = `${world.factions[attackerId].name} declared WAR on ${world.factions[defenderId].name}!`;
+  pushAlert(world, { severity: 'CRITICAL', factionId: attackerId, type: 'WAR_DECLARED', tick: world.tick, targetId: defenderId, msg });
+  pushAlert(world, { severity: 'CRITICAL', factionId: defenderId, type: 'WAR_DECLARED', tick: world.tick, targetId: attackerId, msg });
 
   const attFac = world.factions.find(f => f.id === attackerId);
   if (attFac) {
@@ -96,8 +125,10 @@ export function pickWarGoal(world: World, fid: number, enemyFid: number) {
 }
 
 export function recruitSoldiers(world: World, fid: number, target: number) {
+  const policy = policyOf(world, fid);
+  const adjustedTarget = target * policy.recruitment;
   let count = soldiersOf(world, fid).length;
-  if (count >= target) return;
+  if (count >= adjustedTarget) return;
 
   const isAtWar = atWarAny(world, fid);
   const maxPerSettlement = isAtWar ? 3 : 1;
@@ -107,7 +138,7 @@ export function recruitSoldiers(world: World, fid: number, target: number) {
     if (s.population <= 40) continue; // a soldier-company costs real pop; don't hollow out villages
     const c = DIPLO.SOLDIER_COST;
     let recruited = 0;
-    while (recruited < maxPerSettlement && count < target && s.population > 40 + DIPLO.SOLDIER_POP_COST) {
+    while (recruited < maxPerSettlement && count < adjustedTarget && s.population > 40 + DIPLO.SOLDIER_POP_COST) {
       if (s.stock.food >= c.food && s.stock.ore >= c.ore && s.gold >= c.gold) {
         s.stock.food -= c.food; s.stock.ore -= c.ore; s.gold -= c.gold;
         s.population -= DIPLO.SOLDIER_POP_COST;
@@ -197,7 +228,7 @@ export function warCouncil(world: World, war: War, side: number) {
   const targetDist = startTown ? distance(startTown.q, startTown.r, goal ? goal.q : startTown.q, goal ? goal.r : startTown.r) : 99;
   const mustered = currentArmy >= cap * 0.5;
   const targetDefense = goal ? settlementDefense(world, goal) : 1;
-  const score_siege = goal ? (strengthOf(world, side) / Math.max(1, targetDefense)) * 30 + (mustered ? 40 : 0) - (targetDist * 2) : 0;
+  let score_siege = goal ? (strengthOf(world, side) / Math.max(1, targetDefense)) * 30 + (mustered ? 40 : 0) - (targetDist * 2) : 0;
 
   // 3. Secondary Operations Scoring
   // RAID
@@ -223,7 +254,7 @@ export function warCouncil(world: World, war: War, side: number) {
       }
     }
   }
-  const score_raid = bestRaidHex ? (bestRaidScore + aggr * 10) : 0;
+  let score_raid = bestRaidHex ? (bestRaidScore + aggr * 10) : 0;
 
   // INTERCEPT
   let score_intercept = 0;
@@ -249,6 +280,15 @@ export function warCouncil(world: World, war: War, side: number) {
     }
     score_intercept = bestScore;
     interceptTarget = bestEnemy;
+  }
+
+  const policy = policyOf(world, side);
+  if (policy.militaryStance === 'DEFENSIVE') {
+    score_defend *= 1.5;
+    score_intercept *= 1.5;
+  } else if (policy.militaryStance === 'AGGRESSIVE') {
+    score_siege *= 1.5;
+    score_raid *= 1.5;
   }
 
   // 4. Demobilize
