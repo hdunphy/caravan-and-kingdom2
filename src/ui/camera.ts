@@ -1,5 +1,5 @@
 // Pan/zoom camera for the canvas map.
-export function makeCamera(canvas) {
+export function makeCamera(canvas: HTMLCanvasElement) {
   const cam: any = { x: 0, y: 0, zoom: 1.0, dragging: false, lastX: 0, lastY: 0, moved: false };
 
   canvas.addEventListener('mousedown', e => {
@@ -21,7 +21,7 @@ export function makeCamera(canvas) {
     cam.zoom = Math.max(0.3, Math.min(4, cam.zoom * factor));
   }, { passive: false });
 
-  cam.screenToWorld = (sx, sy) => ({
+  cam.screenToWorld = (sx: number, sy: number) => ({
     x: (sx - canvas.width / 2) / cam.zoom + cam.x,
     y: (sy - canvas.height / 2) / cam.zoom + cam.y,
   });

@@ -2,7 +2,7 @@
 import { DIPLO } from '../../core/constants.js';
 import { getAllies } from './relations.js';
 import { aliveF, traitsF, settlementsF } from './helpers.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function soldiersOf(world: World, fid: number) {
   return world.agents.filter(a => a.factionId === fid && a.type === 'soldier');

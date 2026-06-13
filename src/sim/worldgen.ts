@@ -3,17 +3,17 @@ import { makeRng } from '../core/rng.js';
 import { key, range, distance, hexToPixel, neighbors } from '../core/hex.js';
 import { TERRAIN, FACTIONS, DEFAULT_POLICY } from '../core/constants.js';
 import { foundSettlement } from './settlement.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
 // Seeded 2D value noise with fractal octaves.
 function makeNoise(seed: number) {
-  const hash = (ix, iy) => {
+  const hash = (ix: number, iy: number) => {
     let h = Math.imul(ix, 0x27d4eb2d) ^ Math.imul(iy, 0x165667b1) ^ Math.imul(seed | 0, 0x9e3779b9);
     h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
     h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
     return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   };
-  const smooth = t => t * t * (3 - 2 * t);
+  const smooth = (t: number) => t * t * (3 - 2 * t);
   const base = (x: number, y: number) => {
     const ix = Math.floor(x), iy = Math.floor(y);
     const u = smooth(x - ix), v = smooth(y - iy);
@@ -21,7 +21,7 @@ function makeNoise(seed: number) {
     const c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
     return a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v;
   };
-  return (x, y, octaves = 3) => {
+  return (x: number, y: number, octaves = 3) => {
     let sum = 0, amp = 1, freq = 1, norm = 0;
     for (let o = 0; o < octaves; o++) {
       sum += base(x * freq + o * 31.7, y * freq + o * 17.3) * amp;
@@ -33,7 +33,7 @@ function makeNoise(seed: number) {
 
 export function generateWorld(seed: number = 42, mapRadius: number = 24, factionCount: number = 4) {
   const rng = makeRng(seed);
-  const world = {
+  const world: World = {
     seed, tick: 0, mapRadius,
     rng,
     hexes: new Map(),
@@ -87,7 +87,7 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
   const mountainOrHills = [...world.hexes.values()].filter(h => h.terrain === 'MOUNTAINS' || h.terrain === 'HILLS');
   if (mountainOrHills.length > 0) {
     const numRivers = 2 + Math.floor(rng.next() * 2); // 2 or 3 rivers
-    const sources = [];
+    const sources: Hex[] = [];
     for (let i = 0; i < numRivers; i++) {
       const src = mountainOrHills[Math.floor(rng.next() * mountainOrHills.length)];
       if (src && !sources.includes(src)) sources.push(src);

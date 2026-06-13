@@ -1,7 +1,7 @@
 // Path assignment + mission cancellation (route cache lives on the world).
 import { findPath } from '../../core/pathfinding.js';
 import { homeOf } from './spawn.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // Route cache: hundreds of agents walk the same settlement<->pile routes,
 // so A* results are shared. Cleared periodically (roads change costs).

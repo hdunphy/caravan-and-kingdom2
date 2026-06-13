@@ -8,7 +8,7 @@ import { spawnAgent, assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
 import { findPath } from '../../core/pathfinding.js';
 import { traitsOf, getSettlerCost } from './index.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // --- Civil Governor: construction, upgrades, expansion (GDD 4.1.1) ---
 export function civilGovernor(world: World, s: Settlement) {
@@ -128,7 +128,7 @@ export function civilGovernor(world: World, s: Settlement) {
     [ROLES.LUMBER]: 'timber', [ROLES.MINING]: 'stone',
     [ROLES.GRANARY]: 'food', [ROLES.GENERAL]: null,
   }[s.role];
-  const order = roleBoost ? [roleBoost, ...needs.filter(r => r !== roleBoost)] : needs;
+  const order = roleBoost ? [roleBoost, ...needs.filter((r: string) => r !== roleBoost)] : needs;
 
   for (const res of order) {
     if (res === 'food') {

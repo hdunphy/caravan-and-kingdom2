@@ -23,7 +23,7 @@ let world = generateWorld(seed, 24, 4);
 let evolvedTraits = null;
 let selectedPlaystyle = 'default';
 
-function applyPlaystyle(w) {
+function applyPlaystyle(w: World) {
   if (selectedPlaystyle === 'evolved' && evolvedTraits) {
     for (const fid of Object.keys(evolvedTraits)) {
       const fIdx = parseInt(fid, 10);
@@ -99,7 +99,7 @@ const BASE_TPS = 8;
 let last = performance.now();
 let acc = 0;
 let hudTimer = 0;
-function frame(now) {
+function frame(now: number) {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
   acc += dt * BASE_TPS * speed;

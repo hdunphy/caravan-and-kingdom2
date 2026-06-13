@@ -1,6 +1,6 @@
 // ---------- Relations ----------
 import { DIPLO, ECON } from '../../core/constants.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export const pairKey = (a: number, b: number) => Math.min(a, b) + '|' + Math.max(a, b);
 
@@ -40,7 +40,7 @@ export function hasEmbargo(world: World, a: number, b: number) {
 export function hasPact(world: World, a: number, b: number) {
   if (!world.diplo || !world.diplo.pacts) return false;
   const pk = pairKey(a, b);
-  return world.diplo.pacts.some(p => pairKey(p.a, p.b) === pk);
+  return world.diplo.pacts.some((p: any) => pairKey(p.a, p.b) === pk);
 }
 
 export function getAllies(world: World, fid: number) {

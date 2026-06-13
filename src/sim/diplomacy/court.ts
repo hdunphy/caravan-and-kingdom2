@@ -11,14 +11,14 @@ import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultipli
 import { declareWar, pickWarGoal, recruitSoldiers, warCouncil } from './war.js';
 import { checkPeace, makePeace } from './peace.js';
 import { manageGarrison, considerGift } from './peacetime.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function courtSystem(world: World) {
   if (!world.diplo || world.tick % DIPLO.INTERVAL !== 0 || world.tick === 0) return;
   const d = world.diplo;
 
   // Clean up expired pacts
-  d.pacts = (d.pacts ?? []).filter(p => {
+  d.pacts = (d.pacts ?? []).filter((p: any) => {
     const active = p.expires > world.tick;
     if (!active) {
       d.pactCooldowns = d.pactCooldowns ?? {};
@@ -108,7 +108,7 @@ export function courtSystem(world: World) {
         }
       }
     } else if (curR >= DIPLO.EMBARGO_LIFT_RELATION && hasEmb) {
-      d.embargoes = d.embargoes.filter(k => k !== pairKey(a, b));
+      d.embargoes = d.embargoes.filter((k: any) => k !== pairKey(a, b));
       log(world, `${world.factions[a].name} lifted the Trade Embargo against ${world.factions[b].name}.`);
     }
   }

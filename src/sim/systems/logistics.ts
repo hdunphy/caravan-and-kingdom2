@@ -7,7 +7,7 @@ import { distance } from '../../core/hex.js';
 import { ECON, GOALS } from '../../core/constants.js';
 import { controlledHexes, storageCap } from '../settlement.js';
 import { AGENT_CAPACITY, homeOf, assignPath } from '../agents.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function buildClaims(world: World) {
   const claims = new Map();

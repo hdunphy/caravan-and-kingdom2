@@ -37,5 +37,5 @@ export const DEFAULT_POLICY = {
   expansion: 1.0,      // multiplies EXPAND appetite & settler budget
   tradeStance: 1.0,    // multiplies trade eagerness (0 = autarky)
   garrison: 1.0,       // multiplies peacetime garrison target
-  militaryStance: 'DEFENSIVE', // 'DEFENSIVE' | 'BALANCED' | 'AGGRESSIVE'
+  militaryStance: 'DEFENSIVE' as const, // 'DEFENSIVE' | 'BALANCED' | 'AGGRESSIVE'
 };

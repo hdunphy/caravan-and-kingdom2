@@ -1,9 +1,10 @@
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 // --- History chart (faction pop/gold/military over time) ---
-let chartMetric = 'pop';
+type ChartMetric = 'pop' | 'gold' | 'n' | 'military';
+let chartMetric: ChartMetric = 'pop';
 for (const btn of document.querySelectorAll<HTMLElement>('[data-metric]')) {
   btn.addEventListener('click', () => {
-    chartMetric = btn.dataset.metric;
+    chartMetric = btn.dataset.metric as ChartMetric;
     document.querySelectorAll('[data-metric]').forEach(b => b.classList.toggle('active', b === btn));
   });
 }
@@ -12,6 +13,7 @@ export function drawChart(world: World) {
   const canvas = document.getElementById('chart') as HTMLCanvasElement | null;
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  if (!ctx) return;
   const { width: w, height: h } = canvas;
   ctx.clearRect(0, 0, w, h);
   const samples = world.history?.samples ?? [];

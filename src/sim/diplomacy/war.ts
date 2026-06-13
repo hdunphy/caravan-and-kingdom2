@@ -6,7 +6,7 @@ import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function declareWar(world: World, attackerId: number, defenderId: number, goalId: number, isInitial = false) {
   if (atWar(world, attackerId, defenderId)) return;
@@ -15,7 +15,7 @@ export function declareWar(world: World, attackerId: number, defenderId: number,
   delete world.diplo.truces[pk];
 
   if (world.diplo.pacts) {
-    world.diplo.pacts = world.diplo.pacts.filter(p => pairKey(p.a, p.b) !== pk);
+    world.diplo.pacts = world.diplo.pacts.filter((p: any) => pairKey(p.a, p.b) !== pk);
   }
 
   world.diplo.wars.push({
@@ -121,7 +121,7 @@ export function recruitSoldiers(world: World, fid: number, target: number) {
   }
 }
 
-export function warCouncil(world: World, war: War, side: string) {
+export function warCouncil(world: World, war: War, side: number) {
   const enemy = side === war.a ? war.b : war.a;
   const mySettlements = settlementsF(world, side);
   if (mySettlements.length === 0) return;

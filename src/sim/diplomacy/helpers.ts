@@ -1,6 +1,6 @@
 // Module-private faction helpers shared across the diplomacy passes.
 import { DEFAULT_TRAITS } from '../../core/constants.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export const aliveF = (world: World, fid: number) => !world.factions[fid].eliminated;
 export const traitsF = (world: World, fid: number) => world.factions[fid]?.traits ?? DEFAULT_TRAITS;

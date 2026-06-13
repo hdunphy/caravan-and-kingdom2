@@ -8,7 +8,7 @@ import { civilGovernor, findColonySite } from './civil.js';
 import { laborGovernor } from './labor.js';
 import { transportGovernor } from './transport.js';
 import { tradeGovernor } from './trade.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export { findColonySite } from './civil.js';
 

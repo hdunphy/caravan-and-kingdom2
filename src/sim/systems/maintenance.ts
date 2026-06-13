@@ -2,7 +2,7 @@
 import { ECON, DIPLO } from '../../core/constants.js';
 import { controlledHexes, log } from '../settlement.js';
 import { homeOf } from '../agents.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function maintenanceSystem(world: World) {
   // Traffic memory fades so roads chase live routes, not ancient ones.

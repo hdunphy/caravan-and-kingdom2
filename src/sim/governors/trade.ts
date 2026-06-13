@@ -5,7 +5,7 @@ import { assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
 import { canTrade, tradePrice, stateOf } from '../diplomacy.js';
 import { traitsOf } from './index.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // --- Trade Governor: buy scarce resources, export surpluses (GDD 4.1.4) ---
 export function tradeGovernor(world: World, s: Settlement) {

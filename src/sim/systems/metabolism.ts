@@ -1,7 +1,7 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
 import { ECON, TIERS, DIPLO } from '../../core/constants.js';
 import { log } from '../settlement.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function metabolismSystem(world: World) {
   for (const s of world.settlements) {

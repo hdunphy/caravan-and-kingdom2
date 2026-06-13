@@ -1,7 +1,7 @@
 // Agent creation + small shared helpers (speeds, capacities, trade tally, fallback sites).
 import { distance, range } from '../../core/hex.js';
 import { ECON } from '../../core/constants.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export const AGENT_SPEED = { villager: 1.0, caravan: 1.5, settler: 0.8, soldier: 1.0 };
 
@@ -32,8 +32,8 @@ export function findFallbackSite(world: World, q0: number, r0: number, radius: n
   return best;
 }
 
-export function spawnAgent(world: World, type: string, factionId: number, homeId: number, q: number, r: number) {
-  const agent = {
+export function spawnAgent(world: World, type: AgentKind, factionId: number, homeId: number, q: number, r: number) {
+  const agent: Agent = {
     id: world.nextId++,
     type, factionId, homeId,
     q, r,

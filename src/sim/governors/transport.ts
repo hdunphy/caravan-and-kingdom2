@@ -5,7 +5,7 @@ import { controlledHexes, canAfford, pay, log } from '../settlement.js';
 import { spawnAgent, assignPath, AGENT_CAPACITY } from '../agents.js';
 import { unclaimed, takeTicket } from '../systems.js';
 import { traitsOf } from './index.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 // --- Transport Governor: caravan fleet + logistics missions (GDD 4.1.3) ---
 export function transportGovernor(world: World, s: Settlement) {

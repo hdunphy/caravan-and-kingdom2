@@ -3,7 +3,7 @@
 import { extractionSystem, metabolismSystem, movementSystem, logisticsSystem, maintenanceSystem } from './systems.js';
 import { aiSystem } from './governors.js';
 import { courtSystem, combatSystem } from './diplomacy.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
 const AI_INTERVAL = 10; // governors deliberate every N ticks
 

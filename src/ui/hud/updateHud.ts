@@ -4,9 +4,9 @@ import { summarize } from '../../sim/gameLoop.js';
 import { stateOf, getRelation } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
-import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo } from '../../types.js';
+import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
-const fmt = n => Math.round(n);
+const fmt = (n: number) => Math.round(n);
 
 let eventFilter = 'all';
 let filterBound = false;
@@ -26,7 +26,7 @@ function bindFilterEvents() {
   filterBound = true;
 }
 
-export function updateHud(world: World, selected) {
+export function updateHud(world: World, selected: any) {
   lastWorld = world;
   lastSelected = selected;
   bindFilterEvents();
