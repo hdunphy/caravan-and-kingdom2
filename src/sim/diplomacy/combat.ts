@@ -11,7 +11,7 @@ import { makePeace } from './peace.js';
 // ---------- Combat (every tick) ----------
 export function combatSystem(world) {
   if (!world.diplo) return;
-  const settlementById = new Map(world.settlements.map(s => [s.id, s]));
+  const settlementById: Map<number, any> = new Map(world.settlements.map(s => [s.id, s] as [number, any]));
   healAndAttrition(world);
 
   // Decay burn markers on all hexes
@@ -29,7 +29,7 @@ export function combatSystem(world) {
   if (world.diplo.wars.length === 0) return;
 
   // --- Field battles: soldiers on the same hex fight ---
-  const hexBuckets = new Map();
+  const hexBuckets: Map<string, any[]> = new Map();
   for (const a of world.agents) {
     if (a.type !== 'soldier') continue;
     const k = a.q + ',' + a.r;
@@ -128,7 +128,7 @@ export function combatSystem(world) {
   }
 
   // Battle-start logging & victory checks
-  const oldActiveBattles = world.diplo.activeBattles || {};
+  const oldActiveBattles: Record<string, number[]> = world.diplo.activeBattles || {};
   for (const hk of Object.keys(nextActiveBattles)) {
     if (!oldActiveBattles[hk]) {
       const hex = world.hexes.get(hk);
@@ -249,7 +249,7 @@ export function combatSystem(world) {
   }
 
   // Sieges
-  const sieges = new Map();
+  const sieges: Map<number, any[]> = new Map();
   for (const a of world.agents) {
     if (a.type === 'soldier' && a.state === 'siege' && a.mission?.targetId != null) {
       if (!sieges.has(a.mission.targetId)) sieges.set(a.mission.targetId, []);
