@@ -27,7 +27,7 @@ export function render(ctx, world, cam, selected) {
   ctx.translate(-cam.x, -cam.y);
 
   const factionColor = id => world.factions[id]?.color ?? '#fff';
-  const settlementById = new Map(world.settlements.map(s => [s.id, s]));
+  const settlementById: Map<number, any> = new Map(world.settlements.map(s => [s.id, s] as [number, any]));
   const settlementKeys = new Set(world.settlements.map(s => key(s.q, s.r)));
 
   // Hexes

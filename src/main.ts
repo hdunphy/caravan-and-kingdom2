@@ -6,7 +6,7 @@ import { render, HEX_SIZE } from './ui/renderer.js';
 import { updateHud } from './ui/hud.js';
 import { pixelToHex, key } from './core/hex.js';
 
-const canvas = document.getElementById('map');
+const canvas = document.getElementById('map') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d');
 
 function resize() {
@@ -47,7 +47,7 @@ fetch('./evolved_traits.json')
 const select = document.getElementById('playstyle-select');
 if (select) {
   select.addEventListener('change', e => {
-    selectedPlaystyle = e.target.value;
+    selectedPlaystyle = (e.target as HTMLSelectElement).value;
     world = generateWorld(world.seed, 24, 4);
     applyPlaystyle(world);
     selected = null;
@@ -60,7 +60,7 @@ let selected = null;
 let speed = 1; // ticks per frame; 0 = paused
 
 // Tab switching logic
-document.querySelectorAll('.tab-button').forEach(btn => {
+document.querySelectorAll<HTMLElement>('.tab-button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b === btn));
     const targetTab = btn.dataset.tab;
@@ -78,11 +78,11 @@ canvas.addEventListener('click', e => {
   selected = world.hexes.get(key(q, r)) ?? null;
 
   // Auto-focus the Inspector tab
-  const inspectorTabButton = document.querySelector('[data-tab="inspector-tab"]');
+  const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
   if (inspectorTabButton) inspectorTabButton.click();
 });
 
-for (const btn of document.querySelectorAll('[data-speed]')) {
+for (const btn of document.querySelectorAll<HTMLElement>('[data-speed]')) {
   btn.addEventListener('click', () => {
     speed = Number(btn.dataset.speed);
     document.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('active', b === btn));

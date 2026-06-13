@@ -1,6 +1,6 @@
 // Pan/zoom camera for the canvas map.
 export function makeCamera(canvas) {
-  const cam = { x: 0, y: 0, zoom: 1.0, dragging: false, lastX: 0, lastY: 0, moved: false };
+  const cam: any = { x: 0, y: 0, zoom: 1.0, dragging: false, lastX: 0, lastY: 0, moved: false };
 
   canvas.addEventListener('mousedown', e => {
     cam.dragging = true; cam.moved = false;
