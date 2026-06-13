@@ -141,11 +141,19 @@ export interface LogEvent {
   msg: string;
 }
 
+export type AlertSeverity = 'INFO' | 'IMPORTANT' | 'CRITICAL';
 export interface Alert {
-  type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT' | 'DIPLO';
+  type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT'
+      | 'WAR_DECLARED' | 'SETTLEMENT_LOST' | 'SETTLEMENT_CAPTURED'
+      | 'PEACE_SIGNED' | 'EXHAUSTION_HIGH' | 'DIPLO';
+  severity: AlertSeverity;
+  factionId: number | null;
   tick: number;
   targetId?: number;
+  q?: number;
+  r?: number;
   msg: string;
+  acknowledged?: boolean;
 }
 
 export interface World {

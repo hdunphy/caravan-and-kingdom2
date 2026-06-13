@@ -298,7 +298,7 @@
 </style>
 </head>
 <body>
-  <div id="alerts-panel" style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10; pointer-events: none;"></div>
+  <div id="alerts-panel" style="position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 10;"></div>
   <canvas id="map"></canvas>
   <div id="sidebar">
     <h1>⚜ Caravan & Kingdom</h1>
@@ -329,16 +329,24 @@
     </div>
 
     <div id="policy-tab" class="tab-content active">
-      <div class="panel">
+      <div id="policy-observer-empty" style="display:none; text-align:center; padding: 20px; color: #8fa3bd; font-size: 11px; font-style: italic; background:rgba(0,0,0,0.25); border: 1px dashed rgba(255,255,255,0.05); border-radius:8px;">
+        Observers cannot dictate state policy.<br>Click a kingdom's <b>Declare War</b> button to seize control, or use the <b>↻ Reseed</b> button.
+      </div>
+      <div class="panel" id="policy-panel">
         <h2>State Policy</h2>
-        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+        <div id="policy-context-header" style="display:flex; justify-content:space-between; font-size:10px; color:#cbd5e1; background:rgba(0,0,0,0.2); padding:6px; border-radius:4px; margin-top:4px; margin-bottom: 8px;">
+          <span>Treasury: <b id="policy-ctx-gold" style="color:#f1c40f">0g</b></span>
+          <span>Pop: <b id="policy-ctx-pop" style="color:#e2e8f0">0</b></span>
+          <span>Army: <b id="policy-ctx-army" style="color:#e74c3c">0</b></span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
               <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Expansion Focus</label>
               <span id="policy-expansion-val" style="color:#f3d17c; font-size:11px;">1.0</span>
             </div>
             <input type="range" id="policy-expansion" min="0.1" max="3.0" step="0.1" value="1.0" style="width: 100%;">
-            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Higher values encourage rapid new settlements.</div>
+            <div id="policy-desc-expansion" style="font-size:9px; color:#6c7f99; margin-top:2px;"></div>
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -346,7 +354,7 @@
               <span id="policy-trade-val" style="color:#f3d17c; font-size:11px;">1.0</span>
             </div>
             <input type="range" id="policy-trade" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 100%;">
-            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">0 = Autarky. High values increase exports and imports.</div>
+            <div id="policy-desc-trade" style="font-size:9px; color:#6c7f99; margin-top:2px;"></div>
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -354,7 +362,7 @@
               <span id="policy-recruit-val" style="color:#f3d17c; font-size:11px;">1.0</span>
             </div>
             <input type="range" id="policy-recruit" min="0.1" max="3.0" step="0.1" value="1.0" style="width: 100%;">
-            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Shifts labor pool towards soldiers.</div>
+            <div id="policy-desc-recruit" style="font-size:9px; color:#6c7f99; margin-top:2px;"></div>
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -362,7 +370,7 @@
               <span id="policy-garrison-val" style="color:#f3d17c; font-size:11px;">1.0</span>
             </div>
             <input type="range" id="policy-garrison" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 100%;">
-            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Standing army size during peacetime.</div>
+            <div id="policy-desc-garrison" style="font-size:9px; color:#6c7f99; margin-top:2px;"></div>
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -370,7 +378,7 @@
               <span id="policy-tax-val" style="color:#f3d17c; font-size:11px;">1.0</span>
             </div>
             <input type="range" id="policy-tax" min="0.0" max="3.0" step="0.1" value="1.0" style="width: 100%;">
-            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Income multiplier. High taxes hurt population growth.</div>
+            <div id="policy-desc-tax" style="font-size:9px; color:#6c7f99; margin-top:2px;"></div>
           </div>
           <div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -378,13 +386,28 @@
               <span id="policy-rations-val" style="color:#f3d17c; font-size:11px;">1.0</span>
             </div>
             <input type="range" id="policy-rations" min="0.5" max="2.0" step="0.1" value="1.0" style="width: 100%;">
-            <div style="font-size:9px; color:#6c7f99; margin-top:2px;">Food consumed per capita. Lowering hurts growth.</div>
+            <div id="policy-desc-rations" style="font-size:9px; color:#6c7f99; margin-top:2px;"></div>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" id="policy-stance" style="cursor:pointer;">
-            <label for="policy-stance" style="color:#cbd5e1; font-size:11px; font-weight:600; cursor:pointer;">Aggressive Military Stance</label>
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label style="color:#cbd5e1; font-size:11px; font-weight:600;">Military Stance</label>
+            </div>
+            <div style="display: flex; gap: 4px; margin-top: 4px; margin-bottom: 4px;">
+              <button id="stance-DEFENSIVE" class="tab-button stance-btn" style="flex:1;">Defensive</button>
+              <button id="stance-BALANCED" class="tab-button stance-btn active" style="flex:1;">Balanced</button>
+              <button id="stance-AGGRESSIVE" class="tab-button stance-btn" style="flex:1;">Aggressive</button>
+            </div>
+            <div id="policy-desc-stance" style="font-size:9px; color:#6c7f99;"></div>
           </div>
-          <div style="font-size:9px; color:#6c7f99;">Focuses warfare on raiding rather than sieges.</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 16px; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
+          <span style="font-size: 11px; color: #8fa3bd; font-weight: 600;">Presets:</span>
+          <div style="display: flex; gap: 4px;">
+            <button id="preset-peace" style="font-size:9px; padding:4px 6px;">Peaceful</button>
+            <button id="preset-war" style="font-size:9px; padding:4px 6px;">War</button>
+            <button id="preset-merchant" style="font-size:9px; padding:4px 6px;">Merchant</button>
+            <button id="preset-reset" style="font-size:9px; padding:4px 6px; background:rgba(231,76,60,0.2); border-color:#e74c3c;">Reset</button>
+          </div>
         </div>
       </div>
     </div>
@@ -437,6 +460,18 @@
         <!-- Buttons injected by JS -->
       </div>
       <button id="observe-btn" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">👁 Observe</button>
+    </div>
+  </div>
+
+  <!-- Critical Alert Modal -->
+  <div id="critical-alert-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 150; align-items: center; justify-content: center; flex-direction: column; gap: 16px;">
+    <div class="panel" style="width: 400px; display: flex; flex-direction: column; gap: 16px; border-color: #e74c3c; border-width: 2px;">
+      <h2 id="critical-alert-title" style="font-size: 14px; color: #e74c3c; border-bottom: 1px solid rgba(231,76,60,0.2); padding-bottom: 8px;">⚠ CRITICAL EVENT</h2>
+      <p id="critical-alert-desc" style="color: #cbd5e1; font-size: 12px; line-height: 1.5;"></p>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button id="critical-alert-pan-btn" style="background: rgba(231,76,60,0.2); border-color: rgba(231,76,60,0.5); color: #e74c3c;">Go to Location</button>
+        <button id="critical-alert-ack-btn" class="active">Acknowledge</button>
+      </div>
     </div>
   </div>
 

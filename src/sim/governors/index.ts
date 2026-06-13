@@ -63,8 +63,8 @@ export function evaluateGoal(world: World, s: Settlement) {
     if (findColonySite(world, s)) {
       s.goal = GOALS.EXPAND; return;
     } else {
-      if (s.factionId === world.playerFactionId && policy.expansion > 0.5) {
-        pushAlert(world, { type: 'STAGNANT', tick: world.tick, targetId: s.id, msg: `${s.name} has no room to expand! Lower the Expansion policy or declare war.` });
+      if (policy.expansion > 0.5) {
+        pushAlert(world, { severity: 'INFO', factionId: s.factionId, type: 'STAGNANT', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} has no room to expand! Lower the Expansion policy or declare war.` });
       }
     }
   }

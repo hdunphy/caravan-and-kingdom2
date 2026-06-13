@@ -22,7 +22,7 @@ export function playerDeclareWar(world: World, targetId: number) {
   const currentGold = goldF(world, fid);
   
   if (currentGold < requiredWarChest) {
-    pushAlert(world, { type: 'DIPLO', tick: world.tick, msg: `Not enough gold to fund the war chest! Need ${Math.round(requiredWarChest)}g.` });
+    pushAlert(world, { severity: 'INFO', factionId: fid, type: 'DIPLO', tick: world.tick, msg: `Not enough gold to fund the war chest! Need ${Math.round(requiredWarChest)}g.` });
     return;
   }
   
@@ -52,6 +52,10 @@ export function declareWar(world: World, attackerId: number, defenderId: number,
   });
 
   addRelation(world, attackerId, defenderId, DIPLO.DECLARE_WAR_PENALTY);
+  
+  const msg = `${world.factions[attackerId].name} declared WAR on ${world.factions[defenderId].name}!`;
+  pushAlert(world, { severity: 'CRITICAL', factionId: attackerId, type: 'WAR_DECLARED', tick: world.tick, targetId: defenderId, msg });
+  pushAlert(world, { severity: 'CRITICAL', factionId: defenderId, type: 'WAR_DECLARED', tick: world.tick, targetId: attackerId, msg });
 
   const attFac = world.factions.find(f => f.id === attackerId);
   if (attFac) {

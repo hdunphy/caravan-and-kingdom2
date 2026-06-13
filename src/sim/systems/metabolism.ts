@@ -24,8 +24,8 @@ export function metabolismSystem(world: World) {
     s.gold += taxable * ECON.GOLD_INCOME_PER_POP * widePenalty * taxBonus * policy.taxRate;
 
     const besieged = s.siegeHp != null;
-    if (besieged && s.factionId === world.playerFactionId) {
-      pushAlert(world, { type: 'SIEGE', tick: world.tick, targetId: s.id, msg: `${s.name} is under siege!` });
+    if (besieged) {
+      pushAlert(world, { severity: 'IMPORTANT', factionId: s.factionId, type: 'SIEGE', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} is under siege!` });
     }
     
     let need = s.population * ECON.FOOD_PER_POP * policy.rations;
@@ -48,9 +48,8 @@ export function metabolismSystem(world: World) {
         s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty;
       }
     } else {
-      if (s.factionId === world.playerFactionId) {
-        pushAlert(world, { type: 'STARVATION', tick: world.tick, targetId: s.id, msg: `${s.name} is starving!` });
-      }
+      const foodDays = Math.max(0, s.stock.food) / Math.max(0.05, need);
+      pushAlert(world, { severity: foodDays < 3 ? 'CRITICAL' : 'IMPORTANT', factionId: s.factionId, type: 'STARVATION', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} is starving!` });
       s.stock.food = 0;
       // Starvation scales with how many mouths go unfed
       s.population = Math.max(0, s.population - (0.05 + s.population * 0.0008));

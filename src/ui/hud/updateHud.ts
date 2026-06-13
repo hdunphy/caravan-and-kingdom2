@@ -4,6 +4,7 @@ import { summarize } from '../../sim/gameLoop.js';
 import { stateOf, getRelation } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
+import { getPolicyLabels } from './policyLabels.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 const fmt = (n: number) => Math.round(n);
@@ -41,10 +42,14 @@ export function updateHud(world: World, selected: any) {
     for (const k of dismissedAlertKeys) {
       if (!currentKeys.has(k)) dismissedAlertKeys.delete(k);
     }
-    const visibleAlerts = world.alerts?.filter(a => !dismissedAlertKeys.has(`${a.type}-${a.targetId}`)) || [];
+    const visibleAlerts = world.alerts?.filter(a => 
+      !dismissedAlertKeys.has(`${a.type}-${a.targetId}`) && 
+      a.severity === 'IMPORTANT' && 
+      (world.playerFactionId !== null && (a.factionId === world.playerFactionId || a.factionId === null))
+    ) || [];
 
     if (visibleAlerts.length > 0) {
-      alertsPanel.innerHTML = visibleAlerts.map(a => {
+      alertsPanel.innerHTML = visibleAlerts.slice(-3).map(a => {
         let color = '#e74c3c';
         let icon = '⚠';
         if (a.type === 'STARVATION') { color = '#e67e22'; icon = '🍽'; }
@@ -53,7 +58,7 @@ export function updateHud(world: World, selected: any) {
         if (a.type === 'STAGNANT') { color = '#9b59b6'; icon = '🛑'; }
         if (a.type === 'DIPLO') { color = '#3498db'; icon = '📜'; }
         return `
-          <div class="alert-item" data-type="${a.type}" data-target="${a.targetId}" style="pointer-events: auto; cursor: pointer; background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px; position: relative;">
+          <div class="alert-item" data-type="${a.type}" data-target="${a.targetId}" data-q="${a.q ?? ''}" data-r="${a.r ?? ''}" style="pointer-events: auto; cursor: pointer; background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px; position: relative; animation: slideIn 0.3s ease;">
             <button class="dismiss-alert-btn" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: #8fa3bd; cursor: pointer; font-size: 10px; padding: 2px 4px;">✖</button>
             <span style="font-size: 14px; margin-top: 2px;">${icon}</span>
             <div style="display: flex; flex-direction: column; gap: 2px; padding-right: 12px;">
@@ -195,26 +200,59 @@ export function updateHud(world: World, selected: any) {
   drawChart(world);
 
   // Sync Policy Sliders
+  const policyEmpty = document.getElementById('policy-observer-empty');
+  const policyPanel = document.getElementById('policy-panel');
   if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
+    if (policyEmpty) policyEmpty.style.display = 'none';
+    if (policyPanel) policyPanel.style.display = 'block';
+    
     const p = world.factions[world.playerFactionId].policy!;
-    const updateSlider = (id: string, val: number) => {
+    const labels = getPolicyLabels(world, world.playerFactionId);
+    
+    const updateSlider = (id: string, val: number, descHtml: string) => {
       const el = document.getElementById(`policy-${id}`) as HTMLInputElement;
       const valEl = document.getElementById(`policy-${id}-val`);
+      const descEl = document.getElementById(`policy-desc-${id}`);
       if (el && valEl && document.activeElement !== el) {
         el.value = val.toString();
         valEl.textContent = val.toFixed(1);
       }
+      if (descEl) descEl.innerHTML = descHtml;
     };
-    updateSlider('expansion', p.expansion);
-    updateSlider('trade', p.tradeStance);
-    updateSlider('recruit', p.recruitment);
-    updateSlider('garrison', p.garrison);
-    updateSlider('tax', p.taxRate);
-    updateSlider('rations', p.rations);
-    const stanceEl = document.getElementById('policy-stance') as HTMLInputElement;
-    if (stanceEl && document.activeElement !== stanceEl) {
-      stanceEl.checked = p.militaryStance === 'AGGRESSIVE';
+    
+    updateSlider('expansion', p.expansion, labels.expansion);
+    updateSlider('trade', p.tradeStance, labels.tradeStance);
+    updateSlider('recruit', p.recruitment, labels.recruitment);
+    updateSlider('garrison', p.garrison, labels.garrison);
+    updateSlider('tax', p.taxRate, labels.taxRate);
+    updateSlider('rations', p.rations, labels.rations);
+    
+    document.querySelectorAll('.stance-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`stance-${p.militaryStance}`)?.classList.add('active');
+    
+    
+    const stanceDescEl = document.getElementById('policy-desc-stance');
+    if (stanceDescEl) stanceDescEl.innerHTML = labels.militaryStance;
+    
+    // Context header
+    const facSummary = summaries[world.playerFactionId];
+    if (facSummary) {
+      const goldEl = document.getElementById('policy-ctx-gold');
+      const popEl = document.getElementById('policy-ctx-pop');
+      const armyEl = document.getElementById('policy-ctx-army');
+      if (goldEl) goldEl.textContent = `${facSummary.gold}g`;
+      if (popEl) popEl.textContent = `${facSummary.population}`;
+      if (armyEl) {
+        const army = world.agents.filter(a => a.factionId === world.playerFactionId && a.type === 'soldier').length;
+        armyEl.textContent = `${army}`;
+      }
     }
+  } else {
+    // Hide policy sliders for observer
+    const policyEmpty = document.getElementById('policy-observer-empty');
+    const policyPanel = document.getElementById('policy-panel');
+    if (policyEmpty) policyEmpty.style.display = 'block';
+    if (policyPanel) policyPanel.style.display = 'none';
   }
 
   // Inspector

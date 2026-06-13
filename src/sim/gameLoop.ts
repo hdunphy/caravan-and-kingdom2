@@ -19,8 +19,10 @@ export function step(world: World) {
   maintenanceSystem(world);
   sampleHistory(world);
   
-  // Age out alerts that haven't been refreshed
-  world.alerts = (world.alerts ?? []).filter(a => world.tick - a.tick < 15);
+  // Age out alerts that haven't been refreshed, except unacknowledged CRITICAL ones
+  world.alerts = (world.alerts ?? []).filter(a => 
+    (a.severity === 'CRITICAL' && !a.acknowledged) || (world.tick - a.tick < 50)
+  );
   
   world.bordersDirty = false;
   return world;

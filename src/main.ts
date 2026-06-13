@@ -185,6 +185,47 @@ function showGameOver(title: string, desc: string, color: string) {
   banner.style.display = 'flex';
 }
 
+let criticalAlertActive = false;
+function checkCriticalAlerts(w: World) {
+  if (criticalAlertActive || w.playerFactionId == null) return;
+  const critical = w.alerts?.find(a => a.severity === 'CRITICAL' && !a.acknowledged && (a.factionId === w.playerFactionId || a.factionId === null));
+  if (critical) {
+    criticalAlertActive = true;
+    speed = 0;
+    document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-speed="0"]')?.classList.add('active');
+    const modal = document.getElementById('critical-alert-modal')!;
+    document.getElementById('critical-alert-desc')!.textContent = critical.msg;
+    
+    document.getElementById('critical-alert-ack-btn')!.onclick = () => {
+      critical.acknowledged = true;
+      criticalAlertActive = false;
+      modal.style.display = 'none';
+      speed = 1;
+      document.querySelectorAll('[data-speed]').forEach(b => b.classList.remove('active'));
+      document.querySelector('[data-speed="1"]')?.classList.add('active');
+      updateHud(w, selected);
+    };
+
+    document.getElementById('critical-alert-pan-btn')!.onclick = () => {
+      if (critical.q != null && critical.r != null) {
+        const p = hexToPixel(critical.q, critical.r, HEX_SIZE);
+        cam.x = p.x;
+        cam.y = p.y;
+        selected = world.hexes.get(key(critical.q, critical.r)) ?? null;
+      }
+      critical.acknowledged = true;
+      criticalAlertActive = false;
+      modal.style.display = 'none';
+      updateHud(w, selected);
+      const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
+      if (inspectorTabButton) inspectorTabButton.click();
+    };
+
+    modal.style.display = 'flex';
+  }
+}
+
 document.getElementById('continue-observer-btn')!.onclick = () => {
   world.playerFactionId = null;
   document.getElementById('game-over-banner')!.style.display = 'none';
@@ -205,6 +246,8 @@ document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
   
   const type = alertEl.dataset.type;
   const targetId = parseInt(alertEl.dataset.target!);
+  const qStr = alertEl.dataset.q;
+  const rStr = alertEl.dataset.r;
   
   if (target.classList.contains('dismiss-alert-btn')) {
     dismissedAlertKeys.add(`${type}-${targetId}`);
@@ -213,17 +256,30 @@ document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
   }
   
   // Jump to location
-  const s = world.settlements.find(s => s.id === targetId);
-  if (s) {
-    const p = hexToPixel(s.q, s.r, HEX_SIZE);
+  if (qStr && rStr) {
+    const q = parseInt(qStr);
+    const r = parseInt(rStr);
+    const p = hexToPixel(q, r, HEX_SIZE);
     cam.x = p.x;
     cam.y = p.y;
-    selected = world.hexes.get(key(s.q, s.r)) ?? null;
+    selected = world.hexes.get(key(q, r)) ?? null;
     updateHud(world, selected);
     
-    // Auto-focus inspector tab
     const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
     if (inspectorTabButton) inspectorTabButton.click();
+  } else {
+    // Fallback for alerts that only have targetId (e.g. settlements)
+    const s = world.settlements.find(s => s.id === targetId);
+    if (s) {
+      const p = hexToPixel(s.q, s.r, HEX_SIZE);
+      cam.x = p.x;
+      cam.y = p.y;
+      selected = world.hexes.get(key(s.q, s.r)) ?? null;
+      updateHud(world, selected);
+      
+      const inspectorTabButton = document.querySelector<HTMLElement>('[data-tab="inspector-tab"]');
+      if (inspectorTabButton) inspectorTabButton.click();
+    }
   }
 });
 
@@ -260,18 +316,39 @@ for (const key of policyInputs) {
         if (key === 'recruit') p.recruitment = parseFloat(el.value);
         else if (key === 'trade') p.tradeStance = parseFloat(el.value);
         else (p as any)[key] = parseFloat(el.value);
+        updateHud(world, selected); // Sync descriptions immediately
       }
     });
   }
 }
-const stanceEl = document.getElementById('policy-stance') as HTMLInputElement;
-if (stanceEl) {
-  stanceEl.addEventListener('change', () => {
+
+// 3-way stance buttons
+document.querySelectorAll('.stance-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
     if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
-      world.factions[world.playerFactionId].policy!.militaryStance = stanceEl.checked ? 'AGGRESSIVE' : 'DEFENSIVE';
+      const p = world.factions[world.playerFactionId].policy!;
+      p.militaryStance = btn.id.replace('stance-', '') as 'DEFENSIVE' | 'BALANCED' | 'AGGRESSIVE';
+      updateHud(world, selected);
     }
   });
-}
+});
+
+// Presets
+const presets = {
+  peace: { expansion: 1.5, tradeStance: 1.5, recruitment: 0.5, garrison: 0.5, taxRate: 0.8, rations: 1.2, militaryStance: 'DEFENSIVE' as const },
+  war: { expansion: 0.5, tradeStance: 0.2, recruitment: 2.0, garrison: 2.0, taxRate: 1.5, rations: 0.8, militaryStance: 'AGGRESSIVE' as const },
+  merchant: { expansion: 1.0, tradeStance: 3.0, recruitment: 0.8, garrison: 1.0, taxRate: 1.0, rations: 1.0, militaryStance: 'BALANCED' as const },
+  reset: { expansion: 1.0, tradeStance: 1.0, recruitment: 1.0, garrison: 1.0, taxRate: 1.0, rations: 1.0, militaryStance: 'BALANCED' as const },
+};
+
+Object.entries(presets).forEach(([id, preset]) => {
+  document.getElementById(`preset-${id}`)?.addEventListener('click', () => {
+    if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
+      world.factions[world.playerFactionId].policy = { ...preset };
+      updateHud(world, selected);
+    }
+  });
+});
 
 document.getElementById('save-btn')!.addEventListener('click', () => {
   const json = saveWorld(world);
@@ -323,6 +400,8 @@ function frame(now: number) {
   const budget = performance.now() + 25; // ms per frame for sim stepping
   while (n-- > 0) {
     step(world);
+    checkCriticalAlerts(world);
+    if (speed === 0) break; // Pause immediately
     if (performance.now() > budget) { acc = 0; break; } // keep UI responsive
   }
   checkWinLoss(world);

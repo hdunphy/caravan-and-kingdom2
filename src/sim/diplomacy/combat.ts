@@ -384,6 +384,8 @@ function captureSettlement(world: World, s: Settlement, survivors: Agent[]) {
   }
   addRelation(world, winnerFid, loserFid, DIPLO.CAPTURE_PENALTY);
   log(world, `${s.name} was CAPTURED by ${world.factions[winnerFid].name}!`);
+  pushAlert(world, { severity: 'CRITICAL', factionId: loserFid, type: 'SETTLEMENT_LOST', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `${s.name} was CAPTURED by ${world.factions[winnerFid].name}!` });
+  pushAlert(world, { severity: 'IMPORTANT', factionId: winnerFid, type: 'SETTLEMENT_CAPTURED', tick: world.tick, targetId: s.id, q: s.q, r: s.r, msg: `You CAPTURED ${s.name} from ${world.factions[loserFid].name}!` });
 
   if (settlementsF(world, loserFid).length === 0) {
     world.factions[loserFid].eliminated = true;
