@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Caravan and Kingdom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at 30% 20%, #1b2436 0%, #0d121b 100%);
+    color: #e2e8f0;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #map {
+    flex: 1;
+    min-width: 0;
+    height: 100vh;
+    display: block;
+    cursor: grab;
+  }
+  #map:active {
+    cursor: grabbing;
+  }
+  #sidebar {
+    width: 340px;
+    flex-shrink: 0;
+    padding: 20px;
+    background: rgba(13, 18, 27, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overflow-y: auto;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Scrollbar Styling */
+  #sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+  #sidebar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  #sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  #sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #f3d17c;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(243, 209, 124, 0.15);
+    padding-bottom: 10px;
+  }
+  
+  .controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  
+  button {
+    background: rgba(44, 58, 80, 0.7);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  button:hover {
+    background: rgba(58, 76, 107, 0.85);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    transform: translateY(-1px);
+  }
+  button:active {
+    transform: translateY(0);
+  }
+  button.active {
+    background: linear-gradient(135deg, #f3d17c 0%, #d4af37 100%);
+    color: #0d121b;
+    border-color: #f3d17c;
+    font-weight: 600;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+  }
+  
+  #reseed {
+    background: rgba(212, 175, 55, 0.1);
+    color: #f3d17c;
+    border-color: rgba(243, 209, 124, 0.25);
+  }
+  #reseed:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(243, 209, 124, 0.5);
+  }
+
+  #tick {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8fa3bd;
+    margin-left: auto;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .panel {
+    background: rgba(20, 27, 43, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+  }
+  .panel:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .panel h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #8fa3bd;
+    margin-bottom: 8px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  /* Faction Strength Meters */
+  .faction-row {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: background 0.2s ease;
+  }
+  .faction-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .faction-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .persona {
+    color: #8fa3bd;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .faction-details {
+    font-size: 11px;
+    color: #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+  }
+  .faction-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+  }
+  .metric-bar-container {
+    height: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    display: flex;
+  }
+  .metric-bar {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+
+  /* Log items */
+  .log-item {
+    padding: 4px 6px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+  .logtick {
+    color: #6c7f99;
+    font-size: 9px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .logtext {
+    color: #e2e8f0;
+  }
+  .log-badge {
+    font-size: 10px;
+    margin-right: 4px;
+  }
+  
+  hr {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin: 8px 0;
+  }
+  
+  .hint {
+    font-size: 11px;
+    color: #6c7f99;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    padding: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.05);
+  }
+  
+  /* Tab styling */
+  .tab-container {
+    display: flex;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 4px;
+  }
+  .tab-button {
+    flex: 1;
+    background: transparent;
+    color: #8fa3bd;
+    border: none;
+    padding: 6px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .tab-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+  }
+  .tab-button.active {
+    background: rgba(243, 209, 124, 0.15);
+    color: #f3d17c;
+    border: 1px solid rgba(243, 209, 124, 0.25);
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+</style>
+</head>
+<body>
+  <canvas id="map"></canvas>
+  <div id="sidebar">
+    <h1>⚜ Caravan & Kingdom</h1>
+    <div class="controls">
+      <button data-speed="0">⏸</button>
+      <button data-speed="1" class="active">1×</button>
+      <button data-speed="4">4×</button>
+      <button data-speed="16">16×</button>
+      <button id="reseed">↻ Reseed</button>
+      <span id="tick">Tick 0</span>
+    </div>
+    <div class="controls" id="playstyle-container" style="display: none; background: rgba(0, 0, 0, 0.25); padding: 8px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05); gap: 8px; align-items: center;">
+      <span style="font-size: 11px; color: #8fa3bd; font-weight: 600;">Playstyle:</span>
+      <select id="playstyle-select" style="flex: 1; background: rgba(44, 58, 80, 0.7); color: #e2e8f0; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px; padding: 4px 6px; font-size: 11px; font-family: 'Inter', sans-serif; cursor: pointer; outline: none;">
+        <option value="default">Default Archetypes</option>
+        <option value="evolved">GA Evolved Traits</option>
+      </select>
+    </div>
+    <div class="tab-container">
+      <button class="tab-button active" data-tab="factions-tab">Kingdoms</button>
+      <button class="tab-button" data-tab="history-tab">Analytics</button>
+      <button class="tab-button" data-tab="inspector-tab">Inspector</button>
+      <button class="tab-button" data-tab="events-tab">Chronicle</button>
+    </div>
+
+    <div id="factions-tab" class="tab-content active">
+      <div class="panel"><h2>Factions</h2><div id="factions"></div></div>
+    </div>
+    
+    <div id="history-tab" class="tab-content">
+      <div class="panel"><h2>History</h2>
+        <div class="controls" style="margin-bottom:8px">
+          <button data-metric="pop" class="active">Population</button>
+          <button data-metric="gold">Gold</button>
+          <button data-metric="n">Towns</button>
+          <button data-metric="military">Military</button>
+        </div>
+        <canvas id="chart" width="298" height="115" style="width:100%"></canvas>
+      </div>
+    </div>
+    
+    <div id="inspector-tab" class="tab-content">
+      <div class="panel"><h2>Inspector</h2><div id="inspector"><i>Click a hex to inspect</i></div></div>
+    </div>
+    
+    <div id="events-tab" class="tab-content">
+      <div class="panel">
+        <h2 style="margin-bottom: 10px;">Events</h2>
+        <div style="display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap;">
+          <button class="event-filter active" data-filter="all" style="padding: 4px 8px; font-size: 10px;">All</button>
+          <button class="event-filter" data-filter="war" style="padding: 4px 8px; font-size: 10px;">⚔ Conflict</button>
+          <button class="event-filter" data-filter="trade" style="padding: 4px 8px; font-size: 10px;">💰 Economy</button>
+          <button class="event-filter" data-filter="build" style="padding: 4px 8px; font-size: 10px;">🏠 Build</button>
+        </div>
+        <div id="log"></div>
+      </div>
+    </div>
+    <div class="hint">
+      <strong>Controls:</strong> Drag to pan · Scroll to zoom · Click to inspect.<br><br>
+      <strong>Legend:</strong>
+      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f5e6b8; margin:0 2px;"></span> Pale dots represent resource piles.<br>
+      ⛵ Sails denote units crossing water. Squares are land caravans, small dots are villagers, triangles are settlers.
+    </div>
+  </div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

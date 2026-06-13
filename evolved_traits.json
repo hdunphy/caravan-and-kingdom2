@@ -1,0 +1,32 @@
+{
+  "0": {
+    "name": "Aurelia",
+    "traits": {
+      "expand": 0.8730772211216391,
+      "trade": 1.4370816336013377,
+      "industry": 0.8215003980789334,
+      "aggression": 0.7788820166140795
+    },
+    "persona": "Optimized Mercantile"
+  },
+  "1": {
+    "name": "Vesper",
+    "traits": {
+      "expand": 1.4441512425514562,
+      "trade": 1.0277143098181114,
+      "industry": 1.035988873662427,
+      "aggression": 1.014634281070903
+    },
+    "persona": "Optimized Expansionist"
+  },
+  "2": {
+    "name": "Thornwall",
+    "traits": {
+      "expand": 1.1155872888397425,
+      "trade": 1.0743857212830334,
+      "industry": 1.3002554398495705,
+      "aggression": 1.039106625271961
+    },
+    "persona": "Optimized Industrious"
+  }
+}
