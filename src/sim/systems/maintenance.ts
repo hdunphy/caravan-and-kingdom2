@@ -2,8 +2,9 @@
 import { ECON, DIPLO } from '../../core/constants.js';
 import { controlledHexes, log } from '../settlement.js';
 import { homeOf } from '../agents.js';
+import type { World } from '../../types.js';
 
-export function maintenanceSystem(world) {
+export function maintenanceSystem(world: World) {
   // Traffic memory fades so roads chase live routes, not ancient ones.
   // Roads decay too: only maintained (busy) ones survive long-term.
   if (world.tick % 200 === 0) world.pathCache?.clear(); // roads change costs

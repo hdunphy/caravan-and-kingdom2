@@ -3,10 +3,11 @@
 import { extractionSystem, metabolismSystem, movementSystem, logisticsSystem, maintenanceSystem } from './systems.js';
 import { aiSystem } from './governors.js';
 import { courtSystem, combatSystem } from './diplomacy.js';
+import type { World } from '../types.js';
 
 const AI_INTERVAL = 10; // governors deliberate every N ticks
 
-export function step(world) {
+export function step(world: World) {
   world.tick++;
   extractionSystem(world);
   metabolismSystem(world);
@@ -23,7 +24,7 @@ export function step(world) {
 
 // Rolling faction stats for the HUD charts. When the buffer fills, every
 // other sample is dropped and the interval doubles, so full history always fits.
-function sampleHistory(world) {
+function sampleHistory(world: World) {
   const h = world.history;
   if (!h || world.tick % h.interval !== 0) return;
   h.samples.push({
@@ -45,12 +46,12 @@ function sampleHistory(world) {
   }
 }
 
-export function run(world, ticks) {
+export function run(world: World, ticks) {
   for (let i = 0; i < ticks; i++) step(world);
   return world;
 }
 
-export function summarize(world) {
+export function summarize(world: World) {
   return world.factions.map(f => {
     const towns = world.settlements.filter(s => s.factionId === f.id);
     return {

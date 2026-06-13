@@ -1,10 +1,11 @@
 // Path assignment + mission cancellation (route cache lives on the world).
 import { findPath } from '../../core/pathfinding.js';
 import { homeOf } from './spawn.js';
+import type { World } from '../../types.js';
 
 // Route cache: hundreds of agents walk the same settlement<->pile routes,
 // so A* results are shared. Cleared periodically (roads change costs).
-export function assignPath(world, agent, tq, tr) {
+export function assignPath(world: World, agent, tq, tr) {
   if (!world.pathCache) world.pathCache = new Map();
   const ck = agent.q + ',' + agent.r + '>' + tq + ',' + tr;
   let path = world.pathCache.get(ck);
@@ -21,7 +22,7 @@ export function assignPath(world, agent, tq, tr) {
   return true;
 }
 
-export function cancelMission(world, agent) {
+export function cancelMission(world: World, agent) {
   agent.mission = null;
   agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
   const home = homeOf(world, agent);

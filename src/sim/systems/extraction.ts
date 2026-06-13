@@ -1,8 +1,9 @@
 // --- 1. Extraction: resources accumulate ON the hex (GDD 3.2) ---
 import { TERRAIN, ECON, GOALS, BUILDINGS, TIERS, DEFAULT_TRAITS } from '../../core/constants.js';
 import { controlledHexes } from '../settlement.js';
+import type { World } from '../../types.js';
 
-export function extractionSystem(world) {
+export function extractionSystem(world: World) {
   for (const s of world.settlements) {
     const toolBonus = 1 + Math.min(s.tools, ECON.MAX_TOOLS) * ECON.TOOL_YIELD_BONUS / 2;
     const industry = (world.factions[s.factionId]?.traits ?? DEFAULT_TRAITS).industry;

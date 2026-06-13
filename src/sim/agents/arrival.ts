@@ -4,9 +4,10 @@ import { ECON } from '../../core/constants.js';
 import { foundSettlement, deposit, log } from '../settlement.js';
 import { AGENT_CAPACITY, homeOf, spawnAgent, recordTrade, findFallbackSite } from './spawn.js';
 import { assignPath, cancelMission } from './movement.js';
+import type { World } from '../../types.js';
 
 // Called by the movement system when an agent finishes its path.
-export function onArrival(world, agent) {
+export function onArrival(world: World, agent) {
   const m = agent.mission;
   const home = homeOf(world, agent);
   if (!m) { agent.state = 'idle'; return; }

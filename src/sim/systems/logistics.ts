@@ -7,8 +7,9 @@ import { distance } from '../../core/hex.js';
 import { ECON, GOALS } from '../../core/constants.js';
 import { controlledHexes, storageCap } from '../settlement.js';
 import { AGENT_CAPACITY, homeOf, assignPath } from '../agents.js';
+import type { World } from '../../types.js';
 
-export function buildClaims(world) {
+export function buildClaims(world: World) {
   const claims = new Map();
   for (const a of world.agents) {
     if (a.mission?.kind === 'gather' && a.mission.phase === 'out') {
@@ -28,7 +29,7 @@ export function unclaimed(claims, hex, res) {
   return hex.resources[res] - (claims.get(hex.q + ',' + hex.r + ':' + res) ?? 0);
 }
 
-export function logisticsSystem(world) {
+export function logisticsSystem(world: World) {
   const claimed = buildClaims(world);
 
   for (const agent of world.agents) {
@@ -80,7 +81,7 @@ export function logisticsSystem(world) {
   }
 }
 
-export function rankedNeeds(world, s) {
+export function rankedNeeds(world: World, s) {
   if (s._rankedNeedsTick === world.tick && s._rankedNeeds) {
     return s._rankedNeeds;
   }

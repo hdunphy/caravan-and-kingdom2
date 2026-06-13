@@ -4,6 +4,7 @@ import { summarize } from '../../sim/gameLoop.js';
 import { stateOf, getRelation } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
+import type { World } from '../../types.js';
 
 const fmt = n => Math.round(n);
 
@@ -25,7 +26,7 @@ function bindFilterEvents() {
   filterBound = true;
 }
 
-export function updateHud(world, selected) {
+export function updateHud(world: World, selected) {
   lastWorld = world;
   lastSelected = selected;
   bindFilterEvents();

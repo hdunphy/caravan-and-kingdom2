@@ -6,8 +6,9 @@ import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
 import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
+import type { World } from '../../types.js';
 
-export function declareWar(world, attackerId, defenderId, goalId, isInitial = false) {
+export function declareWar(world: World, attackerId, defenderId, goalId, isInitial = false) {
   if (atWar(world, attackerId, defenderId)) return;
 
   const pk = pairKey(attackerId, defenderId);
@@ -82,7 +83,7 @@ export function declareWar(world, attackerId, defenderId, goalId, isInitial = fa
 }
 
 // ---------- War conduct ----------
-export function pickWarGoal(world, fid, enemyFid) {
+export function pickWarGoal(world: World, fid, enemyFid) {
   const mine = settlementsF(world, fid);
   let best = null, bestScore = Infinity;
   for (const t of settlementsF(world, enemyFid)) {
@@ -94,7 +95,7 @@ export function pickWarGoal(world, fid, enemyFid) {
   return best;
 }
 
-export function recruitSoldiers(world, fid, target) {
+export function recruitSoldiers(world: World, fid, target) {
   let count = soldiersOf(world, fid).length;
   if (count >= target) return;
 
@@ -120,7 +121,7 @@ export function recruitSoldiers(world, fid, target) {
   }
 }
 
-export function warCouncil(world, war, side) {
+export function warCouncil(world: World, war, side) {
   const enemy = side === war.a ? war.b : war.a;
   const mySettlements = settlementsF(world, side);
   if (mySettlements.length === 0) return;

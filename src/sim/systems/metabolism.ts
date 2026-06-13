@@ -1,8 +1,9 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
 import { ECON, TIERS, DIPLO } from '../../core/constants.js';
 import { log } from '../settlement.js';
+import type { World } from '../../types.js';
 
-export function metabolismSystem(world) {
+export function metabolismSystem(world: World) {
   for (const s of world.settlements) {
     // Market taxes: only so much commerce fits in one settlement, so taxable
     // population is bounded (stops gold scaling without limit)
@@ -60,7 +61,7 @@ export function metabolismSystem(world) {
   world.settlements = world.settlements.filter(s => s.population > 0.5);
 }
 
-export function abandonSettlement(world, s) {
+export function abandonSettlement(world: World, s) {
   world.bordersDirty = true;
   world.pathCache?.clear();
   for (const hex of world.hexes.values()) {

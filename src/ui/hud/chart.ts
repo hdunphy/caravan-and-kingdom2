@@ -1,3 +1,4 @@
+import type { World } from '../../types.js';
 // --- History chart (faction pop/gold/military over time) ---
 let chartMetric = 'pop';
 for (const btn of document.querySelectorAll<HTMLElement>('[data-metric]')) {
@@ -7,7 +8,7 @@ for (const btn of document.querySelectorAll<HTMLElement>('[data-metric]')) {
   });
 }
 
-export function drawChart(world) {
+export function drawChart(world: World) {
   const canvas = document.getElementById('chart') as HTMLCanvasElement | null;
   if (!canvas) return;
   const ctx = canvas.getContext('2d');

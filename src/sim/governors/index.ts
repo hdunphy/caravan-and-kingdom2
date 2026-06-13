@@ -8,14 +8,15 @@ import { civilGovernor, findColonySite } from './civil.js';
 import { laborGovernor } from './labor.js';
 import { transportGovernor } from './transport.js';
 import { tradeGovernor } from './trade.js';
+import type { World } from '../../types.js';
 
 export { findColonySite } from './civil.js';
 
-export function traitsOf(world, s) {
+export function traitsOf(world: World, s) {
   return world.factions[s.factionId]?.traits ?? DEFAULT_TRAITS;
 }
 
-export function getSettlerCost(world, factionId) {
+export function getSettlerCost(world: World, factionId) {
   const count = world.settlements.filter(s => s.factionId === factionId).length;
   const factor = 1.0 + ECON.SETTLER_SCALING * (count - 1);
   return {
@@ -24,7 +25,7 @@ export function getSettlerCost(world, factionId) {
   };
 }
 
-export function aiSystem(world) {
+export function aiSystem(world: World) {
   // One shared ticket ledger per AI pass: caravan dispatches reserve piles
   // here so two caravans (even from different settlements) never chase the
   // same cargo. Villager tickets are included via buildClaims.
@@ -39,7 +40,7 @@ export function aiSystem(world) {
 }
 
 // --- Goal evaluation (GDD 4.2) ---
-export function evaluateGoal(world, s) {
+export function evaluateGoal(world: World, s) {
   const foodDays = s.stock.food / Math.max(1, s.population * ECON.FOOD_PER_POP);
   const totalStock = s.stock.food + s.stock.timber + s.stock.stone + s.stock.ore;
   const tier = TIERS[s.tier];

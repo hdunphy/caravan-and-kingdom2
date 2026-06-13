@@ -5,9 +5,10 @@ import { assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
 import { canTrade, tradePrice, stateOf } from '../diplomacy.js';
 import { traitsOf } from './index.js';
+import type { World } from '../../types.js';
 
 // --- Trade Governor: buy scarce resources, export surpluses (GDD 4.1.4) ---
-export function tradeGovernor(world, s) {
+export function tradeGovernor(world: World, s) {
   if (s.siegeHp != null) return; // under siege: trade is cut off
   const survival = s.goal === GOALS.SURVIVE;
   const idle = world.agents.filter(a =>

@@ -1,6 +1,7 @@
 // Canvas renderer: hex map, territory borders, buildings, resource piles, agents.
 import { hexToPixel, hexCorners, HEX_DIRS, key } from '../core/hex.js';
 import { TERRAIN, TIERS } from '../core/constants.js';
+import type { World } from '../types.js';
 
 export const HEX_SIZE = 26;
 
@@ -16,7 +17,7 @@ function smoothPos(agent, tx, ty) {
   return p;
 }
 
-export function render(ctx, world, cam, selected) {
+export function render(ctx, world: World, cam, selected) {
   const { canvas } = ctx;
   ctx.fillStyle = '#1a2230';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
