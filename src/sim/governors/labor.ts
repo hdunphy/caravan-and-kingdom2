@@ -4,7 +4,6 @@ import { canAfford, pay } from '../settlement.js';
 import { treasuryOf } from '../economy.js';
 import { spawnAgent } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
-import { policyOf } from '../policy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
 export function laborGovernor(world: World, s: Settlement) {
@@ -22,8 +21,9 @@ export function laborGovernor(world: World, s: Settlement) {
   const idle = mine.filter(a => a.state === 'idle').length;
   // Demand-aware hiring: idle hands mean labor already outstrips extraction
   if (idle >= 2) return;
-  const policy = policyOf(world, s.factionId);
-  const maxVillagers = Math.min(TIERS[s.tier].jobCap, Math.floor(s.population / 3)) * policy.recruitment;
+  // Civilian hiring is demand-based (idle check above) and bounded by jobs/pop.
+  // The Military Recruitment policy governs soldiers only, not villagers.
+  const maxVillagers = Math.min(TIERS[s.tier].jobCap, Math.floor(s.population / 3));
   if (villagers < maxVillagers && treasuryOf(world, s.factionId) >= ECON.RECRUIT_GOLD_BUFFER && canAfford(world, s, ECON.VILLAGER_COST)) {
     pay(world, s, ECON.VILLAGER_COST);
     spawnAgent(world, 'villager', s.factionId, s.id, s.q, s.r);

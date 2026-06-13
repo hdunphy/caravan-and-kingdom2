@@ -1,7 +1,7 @@
 // Observer HUD: faction overview, inspector panel, event log.
 import { TERRAIN, TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { summarize } from '../../sim/gameLoop.js';
-import { stateOf, getRelation, strengthOf, pairKey } from '../../sim/diplomacy.js';
+import { stateOf, getRelation, strengthOf, pairKey, soldierCap } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
 import { getPolicyLabels } from './policyLabels.js';
@@ -232,7 +232,20 @@ export function updateHud(world: World, selected: any) {
     
     updateSlider('expansion', p.expansion, labels.expansion);
     updateSlider('trade', p.tradeStance, labels.tradeStance);
-    updateSlider('recruit', p.recruitment, labels.recruitment);
+    // Recruitment is an absolute army target: range 0..soldierCap, shown as a count.
+    {
+      const cap = soldierCap(world, world.playerFactionId);
+      const el = document.getElementById('policy-recruit') as HTMLInputElement | null;
+      const valEl = document.getElementById('policy-recruit-val');
+      const descEl = document.getElementById('policy-desc-recruit');
+      const targetCount = Math.round(p.recruitment * cap);
+      if (el && document.activeElement !== el) {
+        el.max = String(cap);
+        el.value = String(targetCount);
+      }
+      if (valEl) valEl.textContent = `${targetCount} / ${cap}`;
+      if (descEl) descEl.innerHTML = labels.recruitment;
+    }
     updateSlider('garrison', p.garrison, labels.garrison);
     updateSlider('tax', p.taxRate, labels.taxRate);
     updateSlider('rations', p.rations, labels.rations);

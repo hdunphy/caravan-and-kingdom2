@@ -54,7 +54,10 @@ export function metabolismSystem(world: World) {
           growthPenalty = DIPLO.MOBILIZATION_GROWTH_PENALTY;
         }
         if (policy.taxRate > 1.2) growthPenalty *= 0.9;
+        // Rations below 0.8 starve growth; above 1.0 a well-fed populace grows
+        // faster (so the upper half of the slider is a real trade: more food → more growth).
         if (policy.rations < 0.8) growthPenalty *= 0.9;
+        else if (policy.rations > 1.0) growthPenalty *= 1.0 + (policy.rations - 1.0) * ECON.RATION_GROWTH_BONUS;
         
         let debtFactor = 1.0;
         if (debt > 0 && debt < ECON.DEBT_DEATH) {

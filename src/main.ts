@@ -9,6 +9,7 @@ import { pixelToHex, hexToPixel, key } from './core/hex.js';
 import { saveWorld, loadWorld } from './sim/serialize.js';
 import { sueForPeace } from './sim/diplomacy/peace.js';
 import { playerDeclareWar } from './sim/diplomacy/war.js';
+import { soldierCap } from './sim/diplomacy.js';
 import type { World } from './types.js';
 
 const canvas = document.getElementById('map') as HTMLCanvasElement;
@@ -380,7 +381,12 @@ for (const key of policyInputs) {
       valEl.textContent = el.value;
       if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
         const p = world.factions[world.playerFactionId].policy!;
-        if (key === 'recruit') p.recruitment = parseFloat(el.value);
+        if (key === 'recruit') {
+          // Slider is an absolute soldier count; store it as a fraction of the cap
+          // so the handle position holds steady as the cap grows with the empire.
+          const cap = soldierCap(world, world.playerFactionId);
+          p.recruitment = cap > 0 ? parseFloat(el.value) / cap : 0;
+        }
         else if (key === 'trade') p.tradeStance = parseFloat(el.value);
         else if (key === 'tax') p.taxRate = parseFloat(el.value);
         else (p as any)[key] = parseFloat(el.value);

@@ -33,7 +33,7 @@ export const DEFAULT_TRAITS = { expand: 1, trade: 1, industry: 1, aggression: 1,
 export const DEFAULT_POLICY = {
   taxRate: 1.0,        // multiplies GOLD_INCOME_PER_POP
   rations: 1.0,        // multiplies food consumption (0.5 = austerity)
-  recruitment: 1.0,    // multiplies villager/soldier recruit appetite
+  recruitment: 0.5,    // player: fraction (0..1) of soldier cap to target. AI: recruit-appetite multiplier (Court resets it from aggression each session)
   expansion: 1.0,      // multiplies EXPAND appetite & settler budget
   tradeStance: 1.0,    // multiplies trade eagerness (0 = autarky)
   garrison: 1.0,       // multiplies peacetime garrison target

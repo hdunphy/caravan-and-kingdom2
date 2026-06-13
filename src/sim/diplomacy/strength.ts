@@ -79,3 +79,12 @@ export function armyCap(world: World, fid: number) {
   const aggr = traitsF(world, fid).aggression ?? 1;
   return Math.max(DIPLO.ARMY_MIN, Math.round((pop / DIPLO.POP_PER_SOLDIER) * (0.7 + 0.3 * aggr)));
 }
+
+// Hard upper bound on how large an army a faction's population can sustain.
+// Each company costs SOLDIER_POP_COST pop; we keep a reserve (×2) so a faction
+// can never conscript its entire populace. Used as the player's recruitment
+// target slider maximum, so the bound scales as the empire grows.
+export function soldierCap(world: World, fid: number) {
+  const pop = settlementsF(world, fid).reduce((a, s) => a + s.population, 0);
+  return Math.max(DIPLO.ARMY_MIN, Math.floor(pop / (DIPLO.SOLDIER_POP_COST * 2)));
+}

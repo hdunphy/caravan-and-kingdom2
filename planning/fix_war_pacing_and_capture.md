@@ -156,4 +156,46 @@ Pacing is a tuning problem — measure it. Add a small headless instrumentation 
 
 The four XS/S correctness bugs (Parts 8, 5, 6, 7) are cheap and high-value — do them first.
 
+**Status (commit `366d7be`):** Parts 1, 2 (incl. player break-truce), 4, 5, 6, 8 are ✅ implemented and verified. Part 7 is **partially** done — `recruitSoldiers` was rewritten to take a flat `target` (the old `count >= target` multiplier bug is gone), but see Round 2 below: the recruitment slider no longer affects soldiers at war, and the debt gate still blocks recruiting. Part 3 (peacetime content) not started.
+
 **Definition of done:** capturing a single city no longer ends a war against a large empire; late-game wars span multiple cities and feel sustained; truces are shorter and the player can break one at a cost; captured cities show only the new owner's color with no stale agents; declaring war on your own vassal/master is impossible from UI and code; **master–vassal pairs read as friendly vassalage (no perpetual truce); vassalizing every rival triggers Victory; the player's recruitment setting actually produces a proportional army and no vassal out-armies a much larger overlord;** `npm run typecheck` clean and the pacing metrics confirm the intended shift.
+
+---
+
+# Round 2 — recruitment control redesign (new)
+
+Two follow-ups from playtest 3. Both center on the **Military Recruitment** control and the new global treasury.
+
+## Part 9 — You should be able to recruit soldiers on credit (into debt)
+
+**Problem:** `recruitSoldiers` (`src/sim/diplomacy/war.ts`) gates each company on `treasuryOf(world, s.factionId) >= DIPLO.SOLDIER_COST.gold` (6). With the single faction treasury, a low/negative balance silently blocks **all** recruitment — even mid-war with recruitment maxed and stance aggressive (the playtest symptom). Mobilizing for war is exactly when a kingdom should be allowed to deficit-spend.
+
+**Fix:**
+- Drop the `treasuryOf >= c.gold` condition from the soldier recruit gate; keep the **physical** gates (`s.stock.food >= c.food`, `s.stock.ore >= c.ore`, pop floor). `spendGold` already permits a negative treasury (no floor), so the gold simply goes into debt and the existing exponential debt penalty / austerity handles the consequences.
+- Keep one safety rail so the AI can't suicide: don't recruit if it would push the treasury past the terminal `−DEBT_DEATH (1000)` floor. (Recruiting between 0 and −1000 is fine and intended.)
+- Note the interaction with austerity: today the AI austerity branch (`court.ts`, treasury ≤ −`DEBT_AUSTERITY`) sets `policy.recruitment = 0` and disbands down to a garrison. That's correct for the AI, but make sure the **player** is never force-disbanded mid-war by austerity (the player is already skipped in the policy loop — verify the disband step is too, and that the AUSTERITY *goal* on the player's settlements doesn't block soldier recruiting).
+
+**Validate:** with treasury at/below zero, a player at war still recruits up to their target (going into debt); recruitment only stops at the `−DEBT_DEATH` floor; AI factions don't recruit themselves to death.
+
+## Part 10 — Recruitment slider = absolute army target (0 → soldier cap), not a 0–3 multiplier
+
+**Goal:** the Military Recruitment control becomes your **target army size in actual soldier count**, giving fine control. Range is `0 → your soldier cap`; as the cap grows with your empire, the slider's max grows but the **handle position stays put**, so your target auto-scales while you keep precise control.
+
+**Design:**
+- Define the player's **soldier cap** = the max army the population can field, e.g. `floor(totalFactionPop / DIPLO.SOLDIER_POP_COST)` with a reserve (each company already costs 15 pop), rather than the conservative aggression-scaled `armyCap` (which is the *AI's* preferred size). Pick the formula and document it; this is the slider's upper bound.
+- **Store the policy as a fraction** `0..1` of the cap (this is what makes "position stays the same as the cap grows" work). Internally `policy.recruitment ∈ [0,1]`.
+- **Target soldiers (player)** = `round(policy.recruitment × soldierCap)`. Route this as the `target` into `recruitSoldiers` for the player in **both** peace and war (replace the `armyCap`-as-war-target for the player; AI keeps `armyCap`). So the slider always controls your army size, in war and peace alike.
+- **UI (`index.html` + `updateHud.ts` + `main.ts`):** make the range dynamic each refresh — `max = soldierCap`, `value = round(fraction × soldierCap)`, displayed as a **count** (e.g. "Target army: 137 / 240"), step 1. On input, `fraction = value / soldierCap`. Because we persist the fraction, when the cap rises the handle stays at the same spot and the count climbs.
+- **Decouple villager hiring.** Today `policy.recruitment` *also* multiplies `maxVillagers` in `labor.ts` — that conflation breaks once recruitment means "soldier target." Remove the recruitment multiplier from villager hiring (let it stay demand-based), or split into a separate civilian-labor lever. The Military Recruitment slider should affect **soldiers only**.
+- **Fix the now-wrong readout** in `src/ui/hud/policyLabels.ts` (it claims "in war, recruit Nx the soldier target") to describe the new absolute target, per `improve_ui_and_notifications.md` Part B (show real effect).
+
+**Validate:** the slider reads as a soldier count and tops out at your current cap; raising population raises the max and the count while the handle stays put; setting it high recruits that many soldiers (subject to pop/food/ore and debt), in both peace and war; villager hiring is unaffected by it.
+
+## Round 2 — order & sizing
+
+| Part | What | Size |
+| :-- | :-- | :-- |
+| 9 | Recruit into debt (drop gold gate; keep `−DEBT_DEATH` rail) | XS |
+| 10 | Recruitment slider → absolute army target (fraction-of-cap, dynamic UI) | M |
+
+**Round 2 done when:** you can deficit-spend to raise an army; the Military Recruitment control is an absolute soldier target (0 → cap) that scales its bounds with your empire while holding handle position; it drives army size in peace and war; villager hiring is decoupled; labels match; `npm run typecheck` clean.

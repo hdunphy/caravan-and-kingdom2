@@ -4,7 +4,7 @@ import { DIPLO, ECON, TERRAIN } from '../../core/constants.js';
 import { log, controlledHexes, pushAlert } from '../settlement.js';
 import { spawnAgent, assignPath, homeOf, cancelMission } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
-import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
+import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap, soldierCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
 import { treasuryOf, spendGold } from '../economy.js';
 import { policyOf } from '../policy.js';
@@ -139,6 +139,11 @@ export function pickWarGoal(world: World, fid: number, enemyFid: number) {
 }
 
 export function recruitSoldiers(world: World, fid: number, target: number) {
+  // The player sets an absolute army target via the recruitment policy: a
+  // fraction (0..1) of their soldier cap, honoured in both peace and war.
+  if (fid === world.playerFactionId) {
+    target = Math.round(policyOf(world, fid).recruitment * soldierCap(world, fid));
+  }
   let count = soldiersOf(world, fid).length;
   if (count >= target) return;
 
@@ -151,7 +156,11 @@ export function recruitSoldiers(world: World, fid: number, target: number) {
     const c = DIPLO.SOLDIER_COST;
     let recruited = 0;
     while (recruited < maxPerSettlement && count < target && s.population > 40 + DIPLO.SOLDIER_POP_COST) {
-      if (s.stock.food >= c.food && s.stock.ore >= c.ore && treasuryOf(world, s.factionId) >= c.gold) {
+      // Soldiers can be raised on credit: only food/ore and a population floor
+      // gate recruitment. Gold may run into debt, down to the terminal
+      // -DEBT_DEATH floor, after which even mobilization stops.
+      const goldOk = treasuryOf(world, s.factionId) - c.gold > -ECON.DEBT_DEATH;
+      if (s.stock.food >= c.food && s.stock.ore >= c.ore && goldOk) {
         s.stock.food -= c.food; s.stock.ore -= c.ore; spendGold(world, s.factionId, c.gold);
         s.population -= DIPLO.SOLDIER_POP_COST;
         spawnAgent(world, 'soldier', fid, s.id, s.q, s.r);

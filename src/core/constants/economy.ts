@@ -49,6 +49,8 @@ export const ECON = {
   ROAD_CAP_PER_RADIUS: 2.5,    // max LOCAL roads a settlement supports = radius * this
   ROAD_MOVE_COST: 0.4,         // movement cost on a road (plains are 1.0)
   EXPAND_MIN_POP: 25,
+  EXPAND_MIN_BUILDINGS: 2,     // a town must develop (food + ≥2 buildings) before it founds colonies
+  RATION_GROWTH_BONUS: 0.5,    // rations above 1.0 grant up to this much extra growth per +1.0 rations
   DEBT_DEATH: 1000,
   DEBT_AUSTERITY: 350,
   DEBT_DECAY_BASE: 0.1,

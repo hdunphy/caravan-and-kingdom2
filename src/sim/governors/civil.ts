@@ -26,9 +26,13 @@ export function civilGovernor(world: World, s: Settlement) {
     return;
   }
 
-  // Dispatch settler
+  // Dispatch settler — but only once the town itself is developed (has food
+  // production and at least a couple of buildings). This stops a high Expansion
+  // setting from spamming cheap settlers out of a bare, undeveloped town.
+  const builtCount = controlledHexes(world, s).filter(h => h.building).length;
+  const hasFoodBuilding = controlledHexes(world, s).some(h => h.building === 'GATHERERS_HUT' || h.building === 'FISHERY');
   const sCost = getSettlerCost(world, s.factionId);
-  if (s.goal === GOALS.EXPAND && !s.pendingSettler && canAfford(world, s, sCost)) {
+  if (s.goal === GOALS.EXPAND && !s.pendingSettler && hasFoodBuilding && builtCount >= ECON.EXPAND_MIN_BUILDINGS && canAfford(world, s, sCost)) {
     const site = findColonySite(world, s);
     if (site) {
       pay(world, s, sCost);
@@ -47,7 +51,6 @@ export function civilGovernor(world: World, s: Settlement) {
   }
 
   // Prioritize food production if there is absolutely none
-  const hasFoodBuilding = controlledHexes(world, s).some(h => h.building === 'GATHERERS_HUT' || h.building === 'FISHERY');
   if (!hasFoodBuilding) {
     const hut = BUILDINGS.GATHERERS_HUT;
     if (canAfford(world, s, hut.cost)) {

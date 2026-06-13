@@ -6,7 +6,7 @@ export {
 } from './relations.js';
 export {
   soldiersOf, strengthOf, committedStrength, defensiveBlocStats,
-  offensiveBlocStats, settlementDefense, armyCap
+  offensiveBlocStats, settlementDefense, armyCap, soldierCap
 } from './strength.js';
 export { courtSystem } from './court.js';
 export { makePeace } from './peace.js';
