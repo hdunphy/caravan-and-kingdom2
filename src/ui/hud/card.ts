@@ -1,9 +1,10 @@
 import { TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { policyOf } from '../../sim/policy.js';
+import { key } from '../../core/hex.js';
 import { controlledHexes, storageCap } from '../../sim/settlement.js';
 import { stateOf, getRelation, strengthOf, pairKey } from '../../sim/diplomacy.js';
 import { HEX_SIZE } from '../renderer.js';
-import type { World } from '../../types.js';
+import type { World, Settlement } from '../../types.js';
 
 export function updateSettlementCard(world: World, selected: any, cam: any) {
   const card = document.getElementById('settlement-card');
@@ -14,7 +15,8 @@ export function updateSettlementCard(world: World, selected: any, cam: any) {
     return;
   }
 
-  const s = world.settlements.find(x => x.q === selected.q && x.r === selected.r);
+  const owner = world.hexes.get(key(selected.q, selected.r))?.owner;
+  const s = (owner ? world.settlementById?.get(owner) : undefined) as Settlement | undefined;
   if (!s) {
     card.style.display = 'none';
     return;

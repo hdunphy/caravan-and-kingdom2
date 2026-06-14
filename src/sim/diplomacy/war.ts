@@ -189,7 +189,7 @@ export function warCouncil(world: World, war: War, side: number) {
   // 1. Staging/Muster Town
   const goalKey = side === war.a ? 'goal_a' : 'goal_b';
   let goalId = war[goalKey];
-  let goal = world.settlements.find(s => s.id === goalId);
+  let goal = world.settlementById?.get(goalId);
   if (!goal || goal.factionId === side) {
     goal = pickWarGoal(world, side, enemy) ?? undefined;
     if (goal) {
@@ -284,7 +284,7 @@ export function warCouncil(world: World, war: War, side: number) {
   let interceptTarget = null;
   const enemiesInOurLand = enemySoldiers.filter(es => {
     const hex = world.hexes.get(es.q + ',' + es.r);
-    return hex && hex.owner !== null && world.settlements.find(s => s.id === hex.owner)?.factionId === side;
+    return hex && hex.owner !== null && world.settlementById?.get(hex.owner)?.factionId === side;
   });
   const enemiesInTerritory = enemiesInOurLand.length > 0;
   if (enemiesInTerritory) {
@@ -374,7 +374,7 @@ export function warCouncil(world: World, war: War, side: number) {
 
   let secondaryTargetName = "";
   if (secondaryOp === 'RAID' && bestRaidHex) {
-    const ownerS = bestRaidHex.owner !== null ? world.settlements.find(s => s.id === bestRaidHex.owner) : null;
+    const ownerS = bestRaidHex.owner !== null ? world.settlementById?.get(bestRaidHex.owner) : null;
     secondaryTargetName = `${TERRAIN[bestRaidHex.terrain]?.name || 'land'} near ${ownerS ? ownerS.name : 'unknown'}`;
   } else if (secondaryOp === 'INTERCEPT' && interceptTarget) {
     secondaryTargetName = `enemy near (${interceptTarget.q},${interceptTarget.r})`;

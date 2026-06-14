@@ -1,5 +1,6 @@
 import { makeRng } from '../core/rng.js';
-import type { World } from '../types.js';
+import { Faction, World } from '../types.js';
+import { indexSettlements } from './gameLoop.js';
 
 export function saveWorld(world: World): string {
   // We extract rngState and serialize hexes as an array of entries.
@@ -55,6 +56,8 @@ export function loadWorld(json: string): World {
   for (const s of world.settlements) {
     if ('gold' in s) delete (s as any).gold;
   }
+  
+  indexSettlements(world);
 
   return world;
 }

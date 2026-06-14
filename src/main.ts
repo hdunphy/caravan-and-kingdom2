@@ -356,7 +356,7 @@ document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
     selectSettlementHex({q, r});
   } else {
     // Fallback for alerts that only have targetId (e.g. settlements)
-    const s = world.settlements.find(s => s.id === targetId);
+    const s = world.settlementById?.get(targetId);
     if (s) {
       selectSettlementHex(s);
     }
@@ -403,7 +403,7 @@ document.body.addEventListener('click', (e) => {
   if (target.classList.contains('set-focus-btn')) {
     const targetId = parseInt(target.dataset.target!);
     const focus = target.dataset.focus as string;
-    const s = world.settlements.find(x => x.id === targetId);
+    const s = world.settlementById?.get(targetId);
     if (s && world.playerFactionId === s.factionId) {
       world.factions[s.factionId].focus = focus;
       updateHud(world, selected);
@@ -412,7 +412,7 @@ document.body.addEventListener('click', (e) => {
   const realmRow = target.closest('.realm-row') as HTMLElement;
   if (realmRow) {
     const sId = parseInt(realmRow.dataset.id!);
-    const s = world.settlements.find(x => x.id === sId);
+    const s = world.settlementById?.get(sId);
     if (s) selectSettlementHex(s);
   }
 });

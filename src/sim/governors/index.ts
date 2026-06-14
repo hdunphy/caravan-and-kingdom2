@@ -20,7 +20,7 @@ export function traitsOf(world: World, s: Settlement) {
 }
 
 export function getSettlerCost(world: World, factionId: number) {
-  const count = world.settlements.filter(s => s.factionId === factionId).length;
+  const count = (world.settlementsByFaction?.get(factionId) || []).length;
   const policy = policyOf(world, factionId);
   const factor = (1.0 + ECON.SETTLER_SCALING * (count - 1)) / Math.max(0.1, policy.expansion);
   return {

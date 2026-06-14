@@ -333,7 +333,7 @@ function healAndAttrition(world: World) {
     if (atHome) {
       a.integrity = Math.min(100, a.integrity + DIPLO.SOLDIER_HEAL);
     } else if (a.state !== 'idle') {
-      const mySettlements = world.settlements.filter(s => s.factionId === a.factionId);
+      const mySettlements = world.settlementsByFaction?.get(a.factionId) || [];
       let minD = Infinity;
       for (const s of mySettlements) {
         const d = distance(a.q, a.r, s.q, s.r);

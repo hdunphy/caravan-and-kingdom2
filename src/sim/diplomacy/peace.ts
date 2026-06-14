@@ -96,7 +96,7 @@ export function makePeace(world: World, war: War, loser: number) {
     }
   } else {
     log(world, `${world.factions[war.a].name} and ${world.factions[war.b].name} agreed to a white peace`);
-    const s = world.settlements.find(s => s.factionId === war.a);
+    const s = world.settlementsByFaction?.get(war.a)?.[0];
     pushAlert(world, { severity: 'IMPORTANT', factionId: war.a, type: 'PEACE_SIGNED', tick: world.tick, targetId: s?.id, msg: `${world.factions[war.a].name} and ${world.factions[war.b].name} signed a white peace.` });
     pushAlert(world, { severity: 'IMPORTANT', factionId: war.b, type: 'PEACE_SIGNED', tick: world.tick, targetId: s?.id, msg: `${world.factions[war.a].name} and ${world.factions[war.b].name} signed a white peace.` });
   }

@@ -1,7 +1,7 @@
 import { TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { policyOf } from '../../sim/policy.js';
 import { controlledHexes } from '../../sim/settlement.js';
-import type { World } from '../../types.js';
+import type { World, Settlement } from '../../types.js';
 
 let currentSort = localStorage.getItem('cnk_realm_sort') || 'name';
 let sortAsc = localStorage.getItem('cnk_realm_sort_dir') !== 'desc';
@@ -46,7 +46,7 @@ export function renderRealmTab(world: World) {
   if (emptyMsg) emptyMsg.style.display = 'none';
   if (panel) panel.style.display = 'block';
 
-  const mySettlements = world.settlements.filter(s => s.factionId === world.playerFactionId);
+  const mySettlements = (world.playerFactionId !== null ? (world.settlementsByFaction?.get(world.playerFactionId) || []) : []) as Settlement[];
   const myFaction = world.factions[world.playerFactionId];
   if (!myFaction) return;
 
