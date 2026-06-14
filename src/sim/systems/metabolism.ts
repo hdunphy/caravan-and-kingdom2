@@ -1,5 +1,6 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
-import { BUILDINGS, ECON, TIERS, DIPLO } from '../../core/constants.js';
+import { TIERS, ECON, DIPLO, GOALS } from '../../core/constants.js';
+import { invalidatePathsNear } from '../../core/pathfinding.js';
 import { getModifier } from './events.js';
 import { log, pushAlert, storageCap } from '../settlement.js';
 import { policyOf } from '../policy.js';
@@ -113,7 +114,7 @@ export function metabolismSystem(world: World) {
 
 export function abandonSettlement(world: World, s: Settlement) {
   world.bordersDirty = true;
-  world.pathCache?.clear();
+  invalidatePathsNear(world, s.q, s.r);
   for (const hex of world.hexes.values()) {
     if (hex.owner === s.id) { hex.owner = null; hex.building = null; }
   }

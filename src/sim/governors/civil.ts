@@ -7,7 +7,7 @@ import { controlledHexes, computeRole, claimTerritory, canAfford, pay, storageCa
 import { treasuryOf } from '../economy.js';
 import { spawnAgent, assignPath } from '../agents.js';
 import { rankedNeeds } from '../systems.js';
-import { findPath } from '../../core/pathfinding.js';
+import { findPath, invalidatePathsNear } from '../../core/pathfinding.js';
 import { traitsOf, getSettlerCost } from './index.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
@@ -20,7 +20,7 @@ export function civilGovernor(world: World, s: Settlement) {
     pay(world, s, tier.upgradeCost);
     s.tier = tier.next as Tier;
     claimTerritory(world, s);
-    world.pathCache?.clear();
+    invalidatePathsNear(world, s.q, s.r);
     s.role = computeRole(world, s);
     log(world, `${s.name} grew into a ${TIERS[s.tier].name}!`);
     return;
@@ -274,7 +274,7 @@ function paveRoads(world: World, s: Settlement) {
     if (++paved >= 2) break;
   }
   if (paved > 0) {
-    world.pathCache?.clear();
+    invalidatePathsNear(world, s.q, s.r);
     if (routePartner) log(world, `${s.name} paved/bridged the route toward ${routePartner.name}`);
     return;
   }
@@ -310,7 +310,7 @@ function paveRoads(world: World, s: Settlement) {
       best.roadIntegrity = 100;
       log(world, `${s.name} paved a road at (${best.q},${best.r})`);
     }
-    world.pathCache?.clear();
+    invalidatePathsNear(world, best.q, best.r);
   }
 }
 

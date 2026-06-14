@@ -1,5 +1,6 @@
 // Settlement lifecycle: founding, tiers, roles, territory, stock helpers.
-import { key, range } from '../core/hex.js';
+import { key, neighbors, distance, range, hexCorners } from '../core/hex.js';
+import { invalidatePathsNear } from '../core/pathfinding.js';
 import { TIERS, ROLES, GOALS, ECON, BUILDINGS } from '../core/constants.js';
 import { treasuryOf, spendGold } from './economy.js';
 import { getModifier } from './systems/events.js';
@@ -28,7 +29,7 @@ export function foundSettlement(world: World, factionId: number, q: number, r: n
   world.settlements.push(s);
   claimTerritory(world, s);
   s.role = computeRole(world, s);
-  world.pathCache?.clear();
+  invalidatePathsNear(world, q, r);
   log(world, `${s.name} founded by ${world.factions[factionId].name} (${s.role})`);
   return s;
 }

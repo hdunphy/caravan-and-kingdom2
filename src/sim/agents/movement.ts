@@ -6,15 +6,7 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 // Route cache: hundreds of agents walk the same settlement<->pile routes,
 // so A* results are shared. Cleared periodically (roads change costs).
 export function assignPath(world: World, agent: Agent, tq: number, tr: number) {
-  if (!world.pathCache) world.pathCache = new Map();
-  const ck = agent.q + ',' + agent.r + '>' + tq + ',' + tr;
-  let path = world.pathCache.get(ck);
-  if (path === undefined) {
-    path = findPath(world, agent.q, agent.r, tq, tr);
-    if (world.pathCache.size < 20000) {
-      world.pathCache.set(ck, path === null ? null : path.slice());
-    }
-  }
+  const path = findPath(world, agent.q, agent.r, tq, tr);
   if (path === null) return false;
   agent.path = path.slice();
   agent.progress = 0;
