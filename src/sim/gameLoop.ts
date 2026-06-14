@@ -3,6 +3,8 @@
 import { extractionSystem, metabolismSystem, movementSystem, logisticsSystem, maintenanceSystem } from './systems.js';
 import { aiSystem } from './governors.js';
 import { courtSystem, combatSystem } from './diplomacy.js';
+import { resolvePendingEvents, eventsSystem } from './systems/events.js';
+import { aiResolveProjects } from './projects.js';
 import { treasuryOf } from './economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
 
@@ -20,9 +22,15 @@ export function step(world: World) {
   maintenanceSystem(world);
   sampleHistory(world);
   
-  // Age out alerts that haven't been refreshed, except unacknowledged CRITICAL ones
+  resolvePendingEvents(world);
+  eventsSystem(world);
+  aiResolveProjects(world);
+
+  // Age out alerts that haven't been refreshed, except unacknowledged CRITICAL ones, or unexpired events
   world.alerts = (world.alerts ?? []).filter(a => 
-    (a.severity === 'CRITICAL' && !a.acknowledged) || (world.tick - a.tick < 50)
+    (a.severity === 'CRITICAL' && !a.acknowledged) || 
+    (a.expiresAt && a.expiresAt > world.tick) || 
+    (world.tick - a.tick < 50)
   );
   
   world.bordersDirty = false;

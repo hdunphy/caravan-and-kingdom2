@@ -63,7 +63,7 @@ export function logisticsSystem(world: World) {
     }
 
     // 2) Internal freight: ship surplus to a nearby needy friendly settlement
-    const cap = storageCap(home);
+    const cap = storageCap(world, home);
     for (const res of ['food', 'timber', 'stone', 'ore']) {
       if (home.stock[res] < cap * 0.5) continue;
       const target = world.settlements.find(o =>

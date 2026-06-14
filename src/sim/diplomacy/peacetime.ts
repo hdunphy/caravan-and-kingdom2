@@ -3,7 +3,7 @@ import { DIPLO, ECON } from '../../core/constants.js';
 import { log } from '../settlement.js';
 import { homeOf } from '../agents.js';
 import { pairKey, getRelation, addRelation, findWar, atWar, atWarAny, stateOf, hasEmbargo, hasPact, getAllies, canTrade, tradePrice } from './relations.js';
-import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap } from './strength.js';
+import { soldiersOf, strengthOf, committedStrength, defensiveBlocStats, offensiveBlocStats, settlementDefense, armyCap, soldierCap } from './strength.js';
 import { aliveF, traitsF, effectiveAggression, settlementsF, goldF, tierMultiplier } from './helpers.js';
 import { treasuryOf, spendGold, addGold } from '../economy.js';
 import { recruitSoldiers } from './war.js';
@@ -14,12 +14,15 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 export function manageGarrison(world: World, fid: number) {
   const aggr = effectiveAggression(world, fid);
   const policy = policyOf(world, fid);
-  let baseTarget = Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison);
+  let target: number;
   if (fid === world.playerFactionId) {
-    const totalPop = settlementsF(world, fid).reduce((sum, s) => sum + s.population, 0);
-    baseTarget = Math.round((totalPop / 25) * policy.garrison);
+    // Player's standing army is the absolute target they set (fraction of cap),
+    // applied in peacetime too so the recruitment slider is the single army lever.
+    target = Math.round(policy.recruitment * soldierCap(world, fid));
+  } else {
+    const baseTarget = Math.round(settlementsF(world, fid).length * DIPLO.GARRISON_PEACE * (aggr >= 1.2 ? 2 : 1) * policy.garrison);
+    target = Math.min(Math.round(baseTarget * policy.recruitment), armyCap(world, fid));
   }
-  const target = Math.min(Math.round(baseTarget * policy.recruitment), armyCap(world, fid));
   
   const soldiers = soldiersOf(world, fid);
   if (soldiers.length < target) {

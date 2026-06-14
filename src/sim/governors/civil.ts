@@ -26,9 +26,13 @@ export function civilGovernor(world: World, s: Settlement) {
     return;
   }
 
-  // Dispatch settler
+  // Dispatch settler — but only once the town itself is developed (has food
+  // production and at least a couple of buildings). This stops a high Expansion
+  // setting from spamming cheap settlers out of a bare, undeveloped town.
+  const devBuildings = controlledHexes(world, s).filter(h => h.building).length;
+  const hasFoodBuilding = controlledHexes(world, s).some(h => h.building === 'GATHERERS_HUT' || h.building === 'FISHERY');
   const sCost = getSettlerCost(world, s.factionId);
-  if (s.goal === GOALS.EXPAND && !s.pendingSettler && canAfford(world, s, sCost)) {
+  if (s.goal === GOALS.EXPAND && !s.pendingSettler && hasFoodBuilding && devBuildings >= ECON.EXPAND_MIN_BUILDINGS && canAfford(world, s, sCost)) {
     const site = findColonySite(world, s);
     if (site) {
       pay(world, s, sCost);
@@ -47,7 +51,6 @@ export function civilGovernor(world: World, s: Settlement) {
   }
 
   // Prioritize food production if there is absolutely none
-  const hasFoodBuilding = controlledHexes(world, s).some(h => h.building === 'GATHERERS_HUT' || h.building === 'FISHERY');
   if (!hasFoodBuilding) {
     const hut = BUILDINGS.GATHERERS_HUT;
     if (canAfford(world, s, hut.cost)) {
@@ -100,7 +103,7 @@ export function civilGovernor(world: World, s: Settlement) {
   }
 
   // Warehouse when storage is tight
-  const cap = storageCap(s);
+  const cap = storageCap(world, s);
   const totalStock = s.stock.food + s.stock.timber + s.stock.stone + s.stock.ore;
   const warehouses = s.buildings.filter(b => b === 'WAREHOUSE').length;
   if (warehouses < 3 && totalStock > cap * 0.8 && canAfford(world, s, BUILDINGS.WAREHOUSE.cost)) {
@@ -313,6 +316,14 @@ function paveRoads(world: World, s: Settlement) {
 
 
 export function findColonySite(world: World, s: Settlement) {
+  if (s.factionId === world.playerFactionId && world.playerTargetColony) {
+    const { q, r } = world.playerTargetColony;
+    const hex = world.hexes.get(key(q, r));
+    if (hex && hex.owner === null && hex.terrain !== 'WATER' && hex.terrain !== 'MOUNTAINS' && hex.terrain !== 'RIVER') {
+      return { q, r };
+    }
+  }
+
   let best = null, bestScore = -Infinity;
   for (const [q, r] of range(s.q, s.r, ECON.EXPAND_SEARCH_RADIUS)) {
     const hex = world.hexes.get(key(q, r));

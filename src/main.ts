@@ -2,6 +2,8 @@
 import { generateWorld } from './sim/worldgen.js';
 import { step } from './sim/gameLoop.js';
 import { makeCamera } from './ui/camera.js';
+import { resolveEventChoice } from './sim/systems/events.js';
+import { enactProject } from './sim/projects.js';
 import { render, HEX_SIZE } from './ui/renderer.js';
 import { updateHud, dismissedAlertKeys } from './ui/hud.js';
 import { updateSettlementCard } from './ui/hud/card.js';
@@ -9,6 +11,7 @@ import { pixelToHex, hexToPixel, key } from './core/hex.js';
 import { saveWorld, loadWorld } from './sim/serialize.js';
 import { sueForPeace } from './sim/diplomacy/peace.js';
 import { playerDeclareWar } from './sim/diplomacy/war.js';
+import { soldierCap } from './sim/diplomacy.js';
 import type { World } from './types.js';
 
 const canvas = document.getElementById('map') as HTMLCanvasElement;
@@ -113,6 +116,16 @@ canvas.addEventListener('click', e => {
   const rect = canvas.getBoundingClientRect();
   const { x, y } = cam.screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
   const { q, r } = pixelToHex(x, y, HEX_SIZE);
+  
+  if (activeLens === 'colony' && world.playerFactionId !== null) {
+    const hex = world.hexes.get(key(q, r));
+    if (hex && hex.owner === null && hex.terrain !== 'WATER' && hex.terrain !== 'MOUNTAINS' && hex.terrain !== 'RIVER') {
+      world.playerTargetColony = { q, r };
+      updateHud(world, hex);
+      return;
+    }
+  }
+
   selected = world.hexes.get(key(q, r)) ?? null;
   updateHud(world, selected);
 });
@@ -321,6 +334,19 @@ document.getElementById('alerts-panel')!.addEventListener('click', (e) => {
     return;
   }
   
+  if (target.classList.contains('alert-choice-btn')) {
+    const eventId = target.dataset.eventid!;
+    const choiceId = target.dataset.choiceid!;
+    const factionId = world.playerFactionId!;
+    resolveEventChoice(world, factionId, eventId, choiceId);
+    
+    // Remove the choices from the alert so it doesn't appear again
+    const alert = world.alerts.find(a => a.eventId === eventId);
+    if (alert) alert.choices = undefined;
+    updateHud(world, selected);
+    return;
+  }
+  
   // Jump to location
     if (qStr && rStr) {
     const q = parseInt(qStr);
@@ -346,6 +372,25 @@ document.body.addEventListener('click', (e) => {
       updateHud(world, selected);
     }
   }
+  // War actions
+  if (target.id === 'btn-declare-war') {
+    const targetFaction = parseInt(target.dataset.faction!);
+    playerDeclareWar(world, targetFaction);
+    updateHud(world, selected);
+    return;
+  }
+  
+  if (target.id === 'btn-set-war-goal') {
+    const warIdx = parseInt(target.dataset.waridx!);
+    const targetId = parseInt(target.dataset.targetid!);
+    const war = world.diplo.wars[warIdx];
+    if (war) {
+      if (war.a === world.playerFactionId) war.goal_a = targetId;
+      else if (war.b === world.playerFactionId) war.goal_b = targetId;
+      updateHud(world, selected);
+    }
+    return;
+  }
   if (target.classList.contains('declare-war-btn')) {
     const targetId = parseInt(target.dataset.target!);
     if (world.playerFactionId != null) {
@@ -370,6 +415,18 @@ document.body.addEventListener('click', (e) => {
   }
 });
 
+// Policy tab handlers
+document.getElementById('policy-panel')?.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement;
+  if (target.classList.contains('enact-project-btn') && !target.hasAttribute('disabled')) {
+    const projId = target.dataset.projid!;
+    if (world.playerFactionId !== null) {
+      enactProject(world, world.playerFactionId, projId);
+      updateHud(world, selected);
+    }
+  }
+});
+
 // Wire up Policy sliders
 const policyInputs = ['expansion', 'trade', 'recruit', 'garrison', 'tax', 'rations'];
 for (const key of policyInputs) {
@@ -380,7 +437,12 @@ for (const key of policyInputs) {
       valEl.textContent = el.value;
       if (world.playerFactionId != null && world.factions[world.playerFactionId]) {
         const p = world.factions[world.playerFactionId].policy!;
-        if (key === 'recruit') p.recruitment = parseFloat(el.value);
+        if (key === 'recruit') {
+          // Slider is an absolute soldier count; store it as a fraction of the cap
+          // so the handle position holds steady as the cap grows with the empire.
+          const cap = soldierCap(world, world.playerFactionId);
+          p.recruitment = cap > 0 ? parseFloat(el.value) / cap : 0;
+        }
         else if (key === 'trade') p.tradeStance = parseFloat(el.value);
         else if (key === 'tax') p.taxRate = parseFloat(el.value);
         else (p as any)[key] = parseFloat(el.value);

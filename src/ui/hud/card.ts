@@ -135,6 +135,18 @@ export function updateSettlementCard(world: World, selected: any, cam: any) {
     } else {
       html += `<div style="font-size:10px; color:#8fa3bd; text-align:center; padding: 10px;">Observer Mode</div>`;
     }
+    const isAtWar = !!world.diplo.wars.find(w => (w.a === world.playerFactionId && w.b === s.factionId) || (w.b === world.playerFactionId && w.a === s.factionId));
+    if (isAtWar) {
+      // Find the war
+      const war = world.diplo.wars.find(w => (w.a === world.playerFactionId && w.b === s.factionId) || (w.b === world.playerFactionId && w.a === s.factionId))!;
+      const myGoalKey = war.a === world.playerFactionId ? 'goal_a' : 'goal_b';
+      const isTarget = war[myGoalKey] === s.id;
+      if (isTarget) {
+        html += `<button disabled style="margin-top: 10px; padding: 6px; background: rgba(231,76,60,0.2); border: 1px solid #e74c3c; color: #fff; width: 100%; border-radius: 4px;">Current War Objective</button>`;
+      } else {
+        html += `<button id="btn-set-war-goal" data-waridx="${world.diplo.wars.indexOf(war)}" data-targetid="${s.id}" style="margin-top: 10px; padding: 6px; background: rgba(231,76,60,0.2); border: 1px solid #e74c3c; color: #fff; width: 100%; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Set War Objective</button>`;
+      }
+    }
   }
 
   card.innerHTML = html;

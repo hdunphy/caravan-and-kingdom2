@@ -105,6 +105,13 @@ export interface FactionTraits {
   [key: string]: any;
 }
 
+export interface Modifier {
+  id: string; // e.g. "bountiful_harvest", "aqueducts"
+  type: string;
+  value: number;
+  expiresAt: number;
+}
+
 export interface Faction {
   id: number;
   name: string;
@@ -113,6 +120,7 @@ export interface Faction {
   treasury: number;
   traits: FactionTraits;
   policy?: Policy;
+  modifiers?: Modifier[];
   [key: string]: any;
 }
 
@@ -142,10 +150,15 @@ export interface LogEvent {
 }
 
 export type AlertSeverity = 'INFO' | 'IMPORTANT' | 'CRITICAL';
+export interface AlertChoice {
+  id: string;
+  text: string;
+  cost?: { food?: number; gold?: number; stone?: number; timber?: number; ore?: number };
+}
 export interface Alert {
   type: 'STARVATION' | 'BANKRUPT' | 'SIEGE' | 'STAGNANT'
       | 'WAR_DECLARED' | 'SETTLEMENT_LOST' | 'SETTLEMENT_CAPTURED'
-      | 'PEACE_SIGNED' | 'EXHAUSTION_HIGH' | 'DIPLO';
+      | 'PEACE_SIGNED' | 'EXHAUSTION_HIGH' | 'DIPLO' | 'EVENT';
   severity: AlertSeverity;
   factionId: number | null;
   tick: number;
@@ -154,6 +167,9 @@ export interface Alert {
   r?: number;
   msg: string;
   acknowledged?: boolean;
+  eventId?: string;
+  choices?: AlertChoice[];
+  expiresAt?: number;
 }
 
 export interface World {
@@ -174,5 +190,6 @@ export interface World {
   stats: { trades: Record<number, number>; captures: Record<number, number> };
   pathCache: Map<string, Array<[number, number]> | null>;
   bordersDirty?: boolean;
+  playerTargetColony?: { q: number; r: number } | null;
   [key: string]: any;
 }

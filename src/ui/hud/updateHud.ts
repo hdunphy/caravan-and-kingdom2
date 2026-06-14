@@ -1,9 +1,11 @@
 // Observer HUD: faction overview, inspector panel, event log.
 import { TERRAIN, TIERS, ECON, DIPLO, BUILDINGS } from '../../core/constants.js';
 import { summarize } from '../../sim/gameLoop.js';
-import { stateOf, getRelation, strengthOf, pairKey } from '../../sim/diplomacy.js';
+import { stateOf, getRelation, strengthOf, pairKey, soldierCap } from '../../sim/diplomacy.js';
 import { settlementAt, controlledHexes, storageCap } from '../../sim/settlement.js';
 import { drawChart } from './chart.js';
+import { updateSettlementCard } from './card.js';
+import { PROJECTS, canAffordProject } from '../../sim/projects.js';
 import { getPolicyLabels } from './policyLabels.js';
 import { renderRealmTab } from './realm.js';
 import { policyOf } from '../../sim/policy.js';
@@ -48,7 +50,7 @@ export function updateHud(world: World, selected: any) {
     }
     const visibleAlerts = world.alerts?.filter(a => 
       !dismissedAlertKeys.has(`${a.type}-${a.targetId}`) && 
-      a.severity === 'IMPORTANT' && 
+      (a.severity === 'IMPORTANT' || a.severity === 'CRITICAL' || a.choices) && 
       (world.playerFactionId !== null && (a.factionId === world.playerFactionId || a.factionId === null))
     ) || [];
 
@@ -61,13 +63,30 @@ export function updateHud(world: World, selected: any) {
         if (a.type === 'SIEGE') { color = '#e74c3c'; icon = '⚔'; }
         if (a.type === 'STAGNANT') { color = '#9b59b6'; icon = '🛑'; }
         if (a.type === 'DIPLO') { color = '#3498db'; icon = '📜'; }
+        if (a.type === 'EVENT') { color = '#f39c12'; icon = '👑'; }
+        
+        let choicesHtml = '';
+        if (a.choices) {
+          choicesHtml = '<div style="display:flex; flex-direction:column; gap:4px; margin-top:6px; width:100%;">';
+          for (const c of a.choices) {
+            let costStr = '';
+            if (c.cost) {
+              const costs = Object.entries(c.cost).map(([k,v]) => `${v} ${k}`).join(', ');
+              costStr = ` <span style="color:#e74c3c">(-${costs})</span>`;
+            }
+            choicesHtml += `<button class="alert-choice-btn" data-eventid="${a.eventId}" data-choiceid="${c.id}" style="padding: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; cursor: pointer; border-radius: 4px; font-size: 10px; text-align: left;">${c.text}${costStr}</button>`;
+          }
+          choicesHtml += '</div>';
+        }
+
         return `
           <div class="alert-item" data-type="${a.type}" data-target="${a.targetId}" data-q="${a.q ?? ''}" data-r="${a.r ?? ''}" style="pointer-events: auto; cursor: pointer; background: rgba(20, 27, 43, 0.85); border: 1px solid ${color}; border-left: 4px solid ${color}; border-radius: 6px; padding: 10px; color: #e2e8f0; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); backdrop-filter: blur(8px); display: flex; align-items: flex-start; gap: 8px; position: relative; animation: slideIn 0.3s ease;">
             <button class="dismiss-alert-btn" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: #8fa3bd; cursor: pointer; font-size: 10px; padding: 2px 4px;">✖</button>
             <span style="font-size: 14px; margin-top: 2px;">${icon}</span>
-            <div style="display: flex; flex-direction: column; gap: 2px; padding-right: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-right: 12px; width: 100%;">
               <b style="color: ${color}; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">${a.type}</b>
               <span>${a.msg}</span>
+              ${choicesHtml}
             </div>
           </div>
         `;
@@ -232,14 +251,26 @@ export function updateHud(world: World, selected: any) {
     
     updateSlider('expansion', p.expansion, labels.expansion);
     updateSlider('trade', p.tradeStance, labels.tradeStance);
-    updateSlider('recruit', p.recruitment, labels.recruitment);
+    // Recruitment is an absolute army target: range 0..soldierCap, shown as a count.
+    {
+      const cap = soldierCap(world, world.playerFactionId);
+      const el = document.getElementById('policy-recruit') as HTMLInputElement | null;
+      const valEl = document.getElementById('policy-recruit-val');
+      const descEl = document.getElementById('policy-desc-recruit');
+      const targetCount = Math.round(p.recruitment * cap);
+      if (el && document.activeElement !== el) {
+        el.max = String(cap);
+        el.value = String(targetCount);
+      }
+      if (valEl) valEl.textContent = `${targetCount} / ${cap}`;
+      if (descEl) descEl.innerHTML = labels.recruitment;
+    }
     updateSlider('garrison', p.garrison, labels.garrison);
     updateSlider('tax', p.taxRate, labels.taxRate);
     updateSlider('rations', p.rations, labels.rations);
     
     document.querySelectorAll('.stance-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById(`stance-${p.militaryStance}`)?.classList.add('active');
-    
     
     const stanceDescEl = document.getElementById('policy-desc-stance');
     if (stanceDescEl) stanceDescEl.innerHTML = labels.militaryStance;
@@ -256,6 +287,51 @@ export function updateHud(world: World, selected: any) {
         const army = world.agents.filter(a => a.factionId === world.playerFactionId && a.type === 'soldier').length;
         armyEl.textContent = `${army}`;
       }
+    }
+
+    const projectsPanel = document.getElementById('projects-panel');
+    if (projectsPanel) {
+      let html = '';
+      for (const proj of PROJECTS) {
+        const afford = canAffordProject(world, world.playerFactionId, proj);
+        
+        let isActive = false;
+        let expiresAt = 0;
+        const f = world.factions[world.playerFactionId];
+        if (f.modifiers) {
+          const mod = f.modifiers.find(m => m.id === proj.id);
+          if (mod) { isActive = true; expiresAt = mod.expiresAt; }
+        }
+        
+        const costs = Object.entries(proj.cost).map(([k,v]) => `${v} ${k}`).join(', ');
+        
+        if (isActive) {
+          html += `
+            <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid #2ecc71; border-radius: 6px; padding: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <b style="color:#2ecc71; font-size:11px;">${proj.name} (Active)</b><br>
+                <span style="font-size:9px; color:#cbd5e1;">${proj.desc}</span>
+              </div>
+              <span style="font-size:9px; color:#2ecc71;">Expires tick ${expiresAt}</span>
+            </div>
+          `;
+        } else {
+          const btnStyle = afford 
+            ? "padding: 4px 8px; background: #3498db; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 10px;"
+            : "padding: 4px 8px; background: #2c3e50; color: #7f8c8d; border: none; border-radius: 4px; cursor: not-allowed; font-size: 10px;";
+          html += `
+            <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1;">
+                <b style="color:#e2e8f0; font-size:11px;">${proj.name}</b><br>
+                <span style="font-size:9px; color:#cbd5e1;">${proj.desc}</span><br>
+                <span style="font-size:9px; color:#e74c3c;">Cost: ${costs}</span>
+              </div>
+              <button class="enact-project-btn" data-projid="${proj.id}" style="${btnStyle}" ${afford ? '' : 'disabled'}>Enact</button>
+            </div>
+          `;
+        }
+      }
+      projectsPanel.innerHTML = html;
     }
   } else {
     // Hide policy sliders for observer
@@ -300,7 +376,7 @@ export function updateHud(world: World, selected: any) {
 
       html += `Role: ${s.role} | Goal: <b>${s.goal}</b> | Focus: ${s.focus ?? '—'}<br>`;
       html += `Pop: ${fmt(s.population)} | Tools: ${s.tools} | Net Gold: <span style="color:${netColor};">${netStr}</span><br>`;
-      html += `<b>Stock</b> (cap ${storageCap(s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
+      html += `<b>Stock</b> (cap ${storageCap(world, s)}): food ${fmt(s.stock.food)}, timber ${fmt(s.stock.timber)}, stone ${fmt(s.stock.stone)}, ore ${fmt(s.stock.ore)}<br>`;
       if (all.length) {
         const counts: Record<string, number> = {};
         for (const b of all) {

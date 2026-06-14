@@ -30,7 +30,7 @@ export function onArrival(world: World, agent: Agent) {
         if (!home || !assignPath(world, agent, home.q, home.r)) { cancelMission(world, agent); return; }
         m.phase = 'back';
       } else {
-        if (home) deposit(home, agent.cargo);
+        if (home) deposit(world, home, agent.cargo);
         agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
         agent.mission = null; agent.state = 'idle';
       }
@@ -40,7 +40,7 @@ export function onArrival(world: World, agent: Agent) {
     case 'freight': {
       const dest = world.settlements.find(s => s.id === m.destId);
       if (m.phase === 'out') {
-        if (dest) deposit(dest, agent.cargo);
+        if (dest) deposit(world, dest, agent.cargo);
         agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
         if (!home || !assignPath(world, agent, home.q, home.r)) { cancelMission(world, agent); return; }
         m.phase = 'back';
@@ -60,7 +60,7 @@ export function onArrival(world: World, agent: Agent) {
                                     agent.cargo[m.barterRes!] ?? 0);
             if (amount > 0) {
               seller.stock[m.resource!] -= amount;
-              deposit(seller, { [m.barterRes!]: amount });
+              deposit(world, seller, { [m.barterRes!]: amount });
               agent.cargo[m.barterRes!] -= amount;
               agent.cargo[m.resource!] += amount;
               recordTrade(world, home.factionId, seller.factionId);
@@ -100,7 +100,7 @@ export function onArrival(world: World, agent: Agent) {
         if (!home || !assignPath(world, agent, home.q, home.r)) { cancelMission(world, agent); return; }
         m.phase = 'back';
       } else {
-        if (home) deposit(home, agent.cargo);
+        if (home) deposit(world, home, agent.cargo);
         agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
         agent.mission = null; agent.state = 'idle';
       }
@@ -122,7 +122,7 @@ export function onArrival(world: World, agent: Agent) {
               addGold(world, home.factionId, price);
             }
             agent.cargo[m.resource!] -= sold;
-            deposit(buyer, { [m.resource!]: sold });
+            deposit(world, buyer, { [m.resource!]: sold });
             recordTrade(world, home.factionId, buyer.factionId);
             if (home.buildings.includes('MARKET_HALL')) {
               addGold(world, home.factionId, Math.round(sold * 0.1));
@@ -138,7 +138,7 @@ export function onArrival(world: World, agent: Agent) {
         if (!home || !assignPath(world, agent, home.q, home.r)) { cancelMission(world, agent); return; }
         m.phase = 'back';
       } else {
-        if (home) deposit(home, agent.cargo); // unsold goods come home
+        if (home) deposit(world, home, agent.cargo); // unsold goods come home
         agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
         agent.mission = null; agent.state = 'idle';
       }
@@ -223,7 +223,7 @@ export function onArrival(world: World, agent: Agent) {
       // Back home: people rejoin the city, 70% of material cost is recovered.
       if (home) {
         home.population += ECON.SETTLER_POP;
-        deposit(home, {
+        deposit(world, home, {
           food: ECON.SETTLER_COST.food * ECON.SETTLER_REFUND,
           timber: ECON.SETTLER_COST.timber * ECON.SETTLER_REFUND,
         });
