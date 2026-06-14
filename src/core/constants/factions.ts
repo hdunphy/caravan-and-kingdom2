@@ -21,6 +21,22 @@ export const FACTIONS = [
     id: 3, name: 'Skylde', color: '#2980b9', persona: 'Balanced',
     traits: { expand: 1.1, trade: 1.1, industry: 1.05, aggression: 1.0 }
   },
+  {
+    id: 4, name: 'Koranth', color: '#16a085', persona: 'Commercial',
+    traits: { expand: 1.1, trade: 1.4, industry: 0.8, aggression: 0.8 }
+  },
+  {
+    id: 5, name: 'Ignis', color: '#d35400', persona: 'Militant',
+    traits: { expand: 0.8, trade: 0.7, industry: 1.2, aggression: 1.5, opportunistic: true }
+  },
+  {
+    id: 6, name: 'Oakhaven', color: '#27ae60', persona: 'Isolationist',
+    traits: { expand: 0.6, trade: 0.5, industry: 1.5, aggression: 0.4 }
+  },
+  {
+    id: 7, name: 'Zephyr', color: '#1abc9c', persona: 'Opportunistic',
+    traits: { expand: 1.3, trade: 1.2, industry: 0.9, aggression: 1.1, opportunistic: true }
+  },
 ];
 
 export const DEFAULT_TRAITS = { expand: 1, trade: 1, industry: 1, aggression: 1, opportunistic: false };

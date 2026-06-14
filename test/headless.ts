@@ -9,7 +9,7 @@ const seed = Number(process.argv[3] ?? 42);
 if (process.argv[2] === 'matrix') {
   console.log('Running timing baseline matrix...');
   for (const radius of [24, 48]) {
-    for (const factions of [4, 6]) {
+    for (const factions of [4, 6, 8]) {
       const t0 = Date.now();
       run(generateWorld(42, radius, factions), 1000);
       const ms = Date.now() - t0;
