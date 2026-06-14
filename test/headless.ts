@@ -6,6 +6,19 @@ import { saveWorld, loadWorld } from '../src/sim/serialize.js';
 const ticks = Number(process.argv[2] ?? 3000);
 const seed = Number(process.argv[3] ?? 42);
 
+if (process.argv[2] === 'matrix') {
+  console.log('Running timing baseline matrix...');
+  for (const radius of [24, 48]) {
+    for (const factions of [4, 6, 8]) {
+      const t0 = Date.now();
+      run(generateWorld(42, radius, factions), 1000);
+      const ms = Date.now() - t0;
+      console.log(`radius=${radius} factions=${factions} => ${ms}ms / 1000 ticks`);
+    }
+  }
+  process.exit(0);
+}
+
 console.log(`Seed ${seed}, running ${ticks} ticks...`);
 const t0 = Date.now();
 const world = run(generateWorld(seed, 24, 4), ticks);

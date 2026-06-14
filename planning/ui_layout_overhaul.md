@@ -4,7 +4,44 @@ The right-hand panel is overburdened and the tabs have shrunk to the point of be
 
 Grounded in `war-improvements`. Builds on (and partially supersedes) `improve_ui_and_notifications.md` and `ui_qol_features.md` — reuse what's there (settlement cards, map lenses, alert tiering, Realm view) rather than duplicating. This is UI-only; no sim/determinism impact.
 
-> The HUD render lives mostly in `index.html` (markup + inline CSS) and `src/ui/hud/updateHud.ts`, with `realm.ts`, `card.ts`, `chart.ts`. updateHud.ts is already large — **recommend splitting the HUD into per-zone modules** (`banner.ts`, `bottomLog.ts`, `warPanel.ts`, `diplomacyMatrix.ts`, `analyticsWindow.ts`) as part of this work.
+> The HUD render currently lives in `index.html` (markup + inline CSS) and `src/ui/hud/updateHud.ts`, with `realm.ts`, `card.ts`, `chart.ts`. `updateHud.ts` rebuilds `innerHTML` strings each refresh — which is exactly what makes the panel cumbersome to grow. **This overhaul is done as a Svelte migration** (see *Tech foundation* below): each zone becomes a Svelte component (`Banner.svelte`, `Sidebar.svelte`, `DiplomacyMatrix.svelte`, `WarPanel.svelte`, `BottomLog.svelte`, `AnalyticsWindow.svelte`, `SettlementCard.svelte`, …) rather than imperative DOM-string builders.
+
+---
+
+## Tech foundation: migrate the HUD to Svelte
+
+The HUD is moving from vanilla `innerHTML`-rebuilding to **Svelte components**. The layout overhaul *is* a near-total HUD rewrite anyway, so we build the new layout **directly in Svelte** instead of rebuilding it twice in vanilla.
+
+**Why it's low-risk here:** the sim never imports `src/ui/`, so the UI layer is swappable without touching game logic. The migration is contained to `src/ui/` + `main.ts` + `index.html`, and the project already builds with Vite + TS (add `@sveltejs/vite-plugin-svelte` + `svelte`).
+
+**Firm architectural rules:**
+- **The map stays on `<canvas>`, imperative, exactly as it is now.** Svelte renders only the HUD/panels. Do **not** put the per-hex map in components.
+- **Never re-render Svelte at 60fps.** The render loop keeps drawing the canvas every frame; the HUD updates at a **throttled human rate** (a few times/sec, or on meaningful change). Drive this with a single store that the loop bumps on a timer (e.g. every ~150–250ms or every N ticks), not every frame.
+- **`world` stays the single source of truth.** Don't deep-clone it into component state. Hold the live `world` reference in a Svelte store plus a `tick`/version counter; components read derived values from `world` when the counter changes. Player actions still flow into the sim through the existing functions (`playerDeclareWar`, policy mutations, etc.) — the determinism discipline is unchanged.
+- **Keep sim ↔ UI separation.** Svelte components may import pure read helpers from `src/sim/**` (as the current UI does) but never UI from sim.
+
+**Framework:** **Svelte** (chosen). Fine-grained reactivity suits frequent HUD updates with minimal boilerplate, and the bundle stays small. `chart.ts` and the canvas renderer remain plain TS modules the components call into.
+
+**Migration sequencing:** stand up the Svelte scaffold first (mount one root component alongside the canvas), then port zones one at a time, deleting the matching `updateHud.ts` section as each lands — so the app stays runnable throughout rather than a big-bang rewrite.
+
+---
+
+## Target scale (measured)
+
+Profiled the sim headless to 2,500 ticks (sim cost only; rendering not included):
+
+| Config | Hexes | Settlements | Agents | Sim cost |
+| :-- | :-- | :-- | :-- | :-- |
+| R=24, F=4 (current) | 1,801 | ~9 | ~700 | ~1.5 ms/tick |
+| R=32, F=6 | 3,169 | 29 | 409 | 2.8 ms/tick |
+| R=48, F=8 | 7,057 | 52 | 766 | 4.2 ms/tick |
+
+Cost scales with how *full* the map gets (agents + settlements over time), roughly linearly, not with raw hex count.
+
+**Targets:**
+- **~8 factions** (design the matrix/palette to handle up to ~10–12; default 6–8). Diplomacy is O(N²) but cheap (≈66 pairs at 12 factions). The real limit is player legibility, not the sim.
+- **Map ~R=40** (≈5k hexes) as the comfortable target. Two caveats set the real ceiling: **16× fast-forward** multiplies sim cost per frame (4 ms/tick × 16 ≈ 15fps of sim work), and the **renderer currently redraws every hex/agent each frame with no viewport culling** — the untested half and the likely bottleneck past ~R=40.
+- **Prerequisite before scaling past ~R=40: add renderer viewport culling** (draw only on-screen hexes/agents) in `renderer.ts`. This is a sim-independent perf change and unblocks bigger maps + the minimap.
 
 ---
 
@@ -73,6 +110,26 @@ The current pairwise `a–b` rows get buried and don't scale. Replace with an **
 - Whenever your faction is in an active war, a **war panel is always visible** (docked above the map or in the banner), independent of which tab you're on. Per active war show: enemy (color), **your exhaustion vs theirs** as bars, the current **war objective** (the targeted town from WP6 C2), and **Sue-for-Peace**. It vanishes at peace.
 - This replaces hunting for the war info inside the Kingdoms tab.
 
+### 9. Player targeting controls — colony site & war objective
+
+Both shipped in WP6 but are unintuitive, and the war one doesn't actually steer the army. The redesign must fix the wiring and surface them clearly.
+
+**⚠ Bug to fix first (war objective doesn't work):** the enemy-card button writes `war.goal_a` / `war.goal_b` (handler in `main.ts`, markup in `card.ts`), but the war AI (`warCouncil`) reads `war.goalId`. So clicking "Set War Objective" flips the button label but **never redirects the siege** — the two fields are disconnected. Fix: make `warCouncil(world, war, side)` consume the **per-side** objective — for `side`, use `side === war.a ? war.goal_a : war.goal_b` as the siege goal when set, falling back to `pickWarGoal`. Per WP6 C2b a player objective **overrides the `STRIKE_RANGE` filter** (you can target a deep town). Also: reference the war by faction **pair**, not array index — `data-waridx` / `wars.indexOf(war)` goes stale when the wars array changes; look the war up by (player, enemy) on click.
+
+**Set War Objective — two entry points, one action:**
+- On the **persistent war panel** (§8): each active war shows `Objective: <town> ▸` with a control to change it (choose from that enemy's towns, or "click a town on the map"). This is the primary, always-visible entry point — the user expects it here.
+- On the **enemy settlement card** (§3): keep the "Set as war objective" button (only shown when at war with that faction), writing the same per-side objective; show a "Current objective" state when it already is the target.
+- Re-targetable anytime; when the objective falls, the war panel prompts for the next (WP6 C2a/C2c). Mark the current objective on the map.
+
+**Set Colony Target — make it a real button, not a hidden lens:**
+- Today it only works if you find the "Colony Target" **map lens** and then click a hex — undiscoverable. Replace with an explicit **"Choose next colony site" button in the Realm tab** (Crown is the alternative; Realm is recommended since it's about settlements).
+- Clicking it enters a **site-picking mode**: turn on the valid-site overlay (reuse `findColonySite`'s rules — unowned, not Water/Mountain/River, ≥`EXPAND_MIN_DIST` from any settlement; the existing colony lens already renders this) plus a hint ("click a highlighted hex"). A valid hex sets `world.playerTargetColony`; an invalid one is rejected with feedback.
+- Show the active target plainly — "Next colony → (q,r) ✕" with a clear button, in the Realm tab and as the existing map marker.
+- Behaviour per WP6 C1: a single global marker, may sit **outside** the normal search radius, and if the hex is occupied by dispatch time → **alert + fall back to auto** and clear the marker.
+- In Svelte this is a small component with a "picking" state the canvas click handler consults (as the lens does now), rather than a separate hidden mode.
+
+Both remain recorded player inputs (`playerTargetColony`, `war.goal_a/_b`) → deterministic; the only sim-logic change is making `warCouncil` actually read the per-side objective.
+
 ---
 
 ## Additional QoL suggestions
@@ -92,20 +149,27 @@ The current pairwise `a–b` rows get buried and don't scale. Replace with an **
 
 ## Implementation approach & phasing
 
-Split `updateHud.ts` into zone modules as you go; keep each zone's render pure-ish (reads `world`, writes its DOM subtree). Everything stays UI-only — verify `npm run typecheck` and that headless determinism is untouched after each phase.
+Build each zone as a Svelte component reading from the `world` store (throttled tick counter); port one zone at a time and delete the matching `updateHud.ts` section as each lands, so the app stays runnable. Everything stays UI-only — verify `npm run typecheck` and that headless determinism is untouched after each phase.
 
 | Phase | What | Size | Notes |
 | :-- | :-- | :-- | :-- |
+| 0 | **Svelte scaffold** — add the Vite plugin, mount a root component beside the canvas, set up the throttled `world` store | M | foundation for everything below; canvas stays imperative |
 | 1 | Top banner (summary + time controls) + Settings menu (reseed/save/load/playstyle) | M | immediately de-clutters the sidebar |
 | 2 | Remove Inspector tab (cards only) + bottom event-log bar (collapse/expand) | M | reclaims two tabs |
 | 3 | Realm fixes: per-town `s.goal` focus, income breakdown, food prod-vs-consumption | S | small, high-value correctness/clarity |
 | 4 | Persistent war/exhaustion panel | S | always-visible during conflict |
-| 5 | Relationship matrix (N×N) | M | the more-factions enabler |
+| 5 | Relationship matrix (N×N) | M | the more-factions enabler; design for ~8 (up to ~12) factions |
 | 6 | Analytics pop-out window + extra graphs | M | nice-to-have; do after the essentials |
-| 7 | QoL grab-bag (minimap, hotkeys, search, palette, number fmt, collapsible sidebar) | M+ | incremental |
+| 7 | Renderer **viewport culling** (in `renderer.ts`) | M | sim-independent; prerequisite before maps past ~R=40, and unblocks the minimap |
+| 8 | QoL grab-bag (minimap, hotkeys, search, palette, number fmt, collapsible sidebar) | M+ | incremental |
 
-**Open decisions:**
+Phases 0–2 give the biggest clutter relief; 3–4 are cheap correctness/visibility wins; 5 enables more factions; 7 enables bigger maps. They can largely be done in order.
+
+**Settled:**
+- **Framework: Svelte.** Canvas map stays imperative; HUD becomes components on a throttled `world` store.
+- **Scale targets: ~8 factions (matrix/palette built to handle ~12) and ~R=40 maps**, with renderer viewport culling (Phase 7) required before going bigger.
+
+**Open decisions (minor):**
 - Where does the persistent war panel live — docked over the map, or inside the banner? (Recommend: a thin strip docked at the top of the map area.)
-- Is the relationship matrix a section of the **Kingdoms** tab, or its own **Diplomacy** tab? (Recommend: section within Kingdoms to keep 4 tabs, unless faction counts get large.)
+- Is the relationship matrix a section of the **Kingdoms** tab, or its own **Diplomacy** tab? (Recommend: section within Kingdoms while factions ≤ ~8; promote to its own tab if you push toward 12.)
 - Banner on very narrow windows — wrap, or scroll? (Recommend: collapse less-critical stats behind the bell/gear.)
-- How many factions/what map size are you targeting? That sets the bar for the matrix, palette size, minimap, and perf work.

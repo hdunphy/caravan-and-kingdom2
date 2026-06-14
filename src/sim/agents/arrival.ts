@@ -38,7 +38,7 @@ export function onArrival(world: World, agent: Agent) {
     }
 
     case 'freight': {
-      const dest = world.settlements.find(s => s.id === m.destId);
+      const dest = world.settlementById?.get(m.destId!);
       if (m.phase === 'out') {
         if (dest) deposit(world, dest, agent.cargo);
         agent.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
@@ -51,7 +51,7 @@ export function onArrival(world: World, agent: Agent) {
     }
 
     case 'trade': {
-      const seller = world.settlements.find(s => s.id === m.destId);
+      const seller = world.settlementById?.get(m.destId!);
       if (m.phase === 'out') {
         if (seller && home) {
           if (m.barterRes) {
@@ -108,7 +108,7 @@ export function onArrival(world: World, agent: Agent) {
     }
 
     case 'export': {
-      const buyer = world.settlements.find(s => s.id === m.destId);
+      const buyer = world.settlementById?.get(m.destId!);
       if (m.phase === 'out') {
         if (buyer && home) {
           const unit = m.price ?? ECON.TRADE_PRICE;
@@ -146,7 +146,7 @@ export function onArrival(world: World, agent: Agent) {
     }
 
     case 'march': {
-      const target = world.settlements.find(s => s.id === m.targetId);
+      const target = world.settlementById?.get(m.targetId!);
       const hostile = target && world.diplo?.wars.some(w =>
         (w.a === agent.factionId && w.b === target.factionId) ||
         (w.b === agent.factionId && w.a === target.factionId));

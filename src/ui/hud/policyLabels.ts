@@ -5,7 +5,7 @@ import type { World, Policy } from '../../types.js';
 
 export function getPolicyLabels(world: World, factionId: number) {
   const policy = policyOf(world, factionId);
-  const settlements = world.settlements.filter(s => s.factionId === factionId);
+  const settlements = world.settlementsByFaction?.get(factionId) || [];
   const n = settlements.length;
 
   return {

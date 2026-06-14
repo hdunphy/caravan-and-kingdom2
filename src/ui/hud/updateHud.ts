@@ -348,7 +348,7 @@ export function updateHud(world: World, selected: any) {
     const hex = selected;
     const t = (TERRAIN as Record<string, any>)[hex.terrain];
     const settlement = settlementAt(world, hex.q, hex.r);
-    const owner = hex.owner !== null ? world.settlements.find(s => s.id === hex.owner) : null;
+    const owner = hex.owner !== null ? world.settlementById?.get(hex.owner) : null;
     let html = `<b>${t.name}</b> (${hex.q}, ${hex.r})<br>`;
     html += `Move cost: ${t.moveCost === Infinity ? '—' : t.moveCost}<br>`;
     const piles = Object.entries(hex.resources as Record<string, number>).filter(([, v]) => v >= 1)

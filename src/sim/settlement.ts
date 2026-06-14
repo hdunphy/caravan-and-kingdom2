@@ -1,5 +1,6 @@
 // Settlement lifecycle: founding, tiers, roles, territory, stock helpers.
-import { key, range } from '../core/hex.js';
+import { key, neighbors, distance, range, hexCorners } from '../core/hex.js';
+import { invalidatePathsNear } from '../core/pathfinding.js';
 import { TIERS, ROLES, GOALS, ECON, BUILDINGS } from '../core/constants.js';
 import { treasuryOf, spendGold } from './economy.js';
 import { getModifier } from './systems/events.js';
@@ -28,7 +29,7 @@ export function foundSettlement(world: World, factionId: number, q: number, r: n
   world.settlements.push(s);
   claimTerritory(world, s);
   s.role = computeRole(world, s);
-  world.pathCache?.clear();
+  invalidatePathsNear(world, q, r);
   log(world, `${s.name} founded by ${world.factions[factionId].name} (${s.role})`);
   return s;
 }
@@ -43,7 +44,7 @@ export function claimTerritory(world: World, s: Settlement): void {
     if (hex.owner === null) {
       hex.owner = s.id;
     } else if (hex.owner !== s.id) {
-      const other = world.settlements.find(o => o.id === hex.owner);
+      const other = world.settlementById?.get(hex.owner!);
       if (other) {
         const otherTierVal = other.tier === 'CITY' ? 3 : other.tier === 'TOWN' ? 2 : 1;
         if (myTierVal > otherTierVal) {
@@ -114,7 +115,8 @@ export function deposit(world: World, s: Settlement, cargo: Record<string, numbe
 }
 
 export function settlementAt(world: World, q: number, r: number): Settlement | undefined {
-  return world.settlements.find(s => s.q === q && s.r === r);
+  const owner = world.hexes.get(key(q, r))?.owner;
+  return owner ? world.settlementById?.get(owner) : undefined;
 }
 
 export function log(world: World, msg: string) {

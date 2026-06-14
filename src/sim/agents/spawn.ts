@@ -49,5 +49,5 @@ export function spawnAgent(world: World, type: AgentKind, factionId: number, hom
 }
 
 export function homeOf(world: World, agent: Agent) {
-  return world.settlements.find(s => s.id === agent.homeId);
+  return world.settlementById?.get(agent.homeId);
 }

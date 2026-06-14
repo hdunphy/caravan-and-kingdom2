@@ -8,7 +8,7 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 export function maintenanceSystem(world: World) {
   // Traffic memory fades so roads chase live routes, not ancient ones.
   // Roads decay too: only maintained (busy) ones survive long-term.
-  if (world.tick % 200 === 0) world.pathCache?.clear(); // roads change costs
+  if (world.tick % 200 === 0) {} // roads change costs (let it naturally expire via LRU)
   if (world.tick % 10 === 0) {
     const k = Math.pow(ECON.ROAD_TRAFFIC_DECAY, 10);
     for (const hex of world.hexes.values()) {

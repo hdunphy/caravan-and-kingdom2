@@ -1,5 +1,6 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
-import { BUILDINGS, ECON, TIERS, DIPLO } from '../../core/constants.js';
+import { TIERS, ECON, DIPLO, GOALS } from '../../core/constants.js';
+import { invalidatePathsNear } from '../../core/pathfinding.js';
 import { getModifier } from './events.js';
 import { log, pushAlert, storageCap } from '../settlement.js';
 import { policyOf } from '../policy.js';
@@ -12,7 +13,7 @@ export function metabolismSystem(world: World) {
     // population is bounded (stops gold scaling without limit)
     const faction = world.factions.find(f => f.id === s.factionId);
     const factionFocus = faction?.focus ?? 'PEACE';
-    const factionCount = world.settlements.filter(o => o.factionId === s.factionId).length;
+    const factionCount = (world.settlementsByFaction?.get(s.factionId) || []).length;
     const widePenalty = Math.max(1.0 - ECON.WIDE_TAX_MAX_PENALTY, 1.0 - ECON.WIDE_TAX_CORRUPTION * Math.max(0, factionCount - ECON.WIDE_TAX_THRESHOLD));
     const hasMarket = s.buildings.includes('MARKET_HALL');
     const taxableCap = TIERS[s.tier].popCap * (hasMarket ? 3.0 : 2.0);
@@ -96,7 +97,8 @@ export function metabolismSystem(world: World) {
         log(world, `${s.name} has perished`);
         const fid = s.factionId;
         abandonSettlement(world, s);
-        if (world.settlements.filter(o => o.factionId === fid && o.id !== s.id).length === 0) {
+        const fidTowns: Settlement[] = world.settlementsByFaction?.get(fid) || [];
+        if (fidTowns.filter(o => o.id !== s.id).length === 0) {
           world.factions[fid].eliminated = true;
           world.agents = world.agents.filter(a => a.factionId !== fid);
           if (world.diplo) {
@@ -112,7 +114,7 @@ export function metabolismSystem(world: World) {
 
 export function abandonSettlement(world: World, s: Settlement) {
   world.bordersDirty = true;
-  world.pathCache?.clear();
+  invalidatePathsNear(world, s.q, s.r);
   for (const hex of world.hexes.values()) {
     if (hex.owner === s.id) { hex.owner = null; hex.building = null; }
   }

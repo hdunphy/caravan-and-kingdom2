@@ -32,16 +32,42 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
   const settlementById: Map<number, any> = new Map(world.settlements.map(s => [s.id, s] as [number, any]));
   const settlementKeys = new Set(world.settlements.map(s => key(s.q, s.r)));
 
-  // Hexes
+  // Viewport Culling Bounds
+  const margin = HEX_SIZE * 3;
+  const viewLeft = cam.x - canvas.width / (2 * cam.zoom) - margin;
+  const viewRight = cam.x + canvas.width / (2 * cam.zoom) + margin;
+  const viewTop = cam.y - canvas.height / (2 * cam.zoom) - margin;
+  const viewBottom = cam.y + canvas.height / (2 * cam.zoom) + margin;
+
+  const visibleHexes = [];
   for (const hex of world.hexes.values()) {
     const { x, y } = hexToPixel(hex.q, hex.r, HEX_SIZE);
+    if (x < viewLeft || x > viewRight || y < viewTop || y > viewBottom) continue;
+    visibleHexes.push({ hex, x, y });
+  }
+
+  // Terrain Batching
+  const terrainBatches = new Map<string, Path2D>();
+  for (const { hex, x, y } of visibleHexes) {
+    const color = TERRAIN[hex.terrain].color;
+    let path = terrainBatches.get(color);
+    if (!path) {
+      path = new Path2D();
+      terrainBatches.set(color, path);
+    }
     const corners = hexCorners(x, y, HEX_SIZE - 0.5);
-    ctx.beginPath();
-    ctx.moveTo(corners[0][0], corners[0][1]);
-    for (let i = 1; i < 6; i++) ctx.lineTo(corners[i][0], corners[i][1]);
-    ctx.closePath();
-    ctx.fillStyle = TERRAIN[hex.terrain].color;
-    ctx.fill();
+    path.moveTo(corners[0][0], corners[0][1]);
+    for (let i = 1; i < 6; i++) path.lineTo(corners[i][0], corners[i][1]);
+    path.closePath();
+  }
+  for (const [color, path] of terrainBatches.entries()) {
+    ctx.fillStyle = color;
+    ctx.fill(path);
+  }
+
+  // Hex Decorations
+  for (const { hex, x, y } of visibleHexes) {
+    const corners = hexCorners(x, y, HEX_SIZE - 0.5);
 
     // Territory tint and borders
     if (hex.owner !== null) {
@@ -223,9 +249,8 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
   // Roads: connect adjacent road hexes (and roads to settlements).
   // Two passes: dark casing then bright surface, so highways read clearly.
   const roadSegments = [];
-  for (const hex of world.hexes.values()) {
+  for (const { hex, x, y } of visibleHexes) {
     if (!hex.hasRoad) continue;
-    const { x, y } = hexToPixel(hex.q, hex.r, HEX_SIZE);
     let linked = false;
     for (let i = 0; i < HEX_DIRS.length; i++) {
       const [dq, dr] = HEX_DIRS[i];
@@ -234,7 +259,13 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
       const connects = (n && n.hasRoad) || settlementKeys.has(nKey);
       if (!connects) continue;
       linked = true;
-      if (n && n.hasRoad && i >= 3) continue; // draw each road-road edge once
+      if (n && n.hasRoad && i >= 3) {
+        // Only skip if the neighbor is also visible
+        const { x: nx, y: ny } = hexToPixel(n.q, n.r, HEX_SIZE);
+        if (nx >= viewLeft && nx <= viewRight && ny >= viewTop && ny <= viewBottom) {
+          continue;
+        }
+      }
       const { x: nx, y: ny } = hexToPixel(hex.q + dq, hex.r + dr, HEX_SIZE);
       roadSegments.push([x, y, nx, ny]);
     }
@@ -255,6 +286,7 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
   // Settlements
   for (const s of world.settlements) {
     const { x, y } = hexToPixel(s.q, s.r, HEX_SIZE);
+    if (x < viewLeft || x > viewRight || y < viewTop || y > viewBottom) continue;
     const tierR = s.tier === 'VILLAGE' ? 8 : s.tier === 'TOWN' ? 11 : 14;
 
     // Drop shadow glow for settlements
@@ -335,6 +367,7 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
   for (const a of world.agents) {
     const target = hexToPixel(a.q, a.r, HEX_SIZE);
     const { x, y } = smoothPos(a, target.x, target.y);
+    if (x < viewLeft || x > viewRight || y < viewTop || y > viewBottom) continue;
     const color = factionColor(a.factionId);
 
     const currentHex = world.hexes.get(key(a.q, a.r));

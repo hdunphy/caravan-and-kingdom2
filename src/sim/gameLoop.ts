@@ -10,8 +10,32 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 
 const AI_INTERVAL = 10; // governors deliberate every N ticks
 
+export function indexSettlements(world: World) {
+  if (!world.settlementById || !(world.settlementById instanceof Map)) {
+    world.settlementById = new Map();
+    world.settlementsByFaction = new Map();
+  }
+  
+  world.settlementById.clear();
+  world.settlementsByFaction.clear();
+  
+  for (const f of world.factions) {
+    world.settlementsByFaction.set(f.id, []);
+  }
+  for (const s of world.settlements) {
+    world.settlementById.set(s.id, s);
+    let arr = world.settlementsByFaction.get(s.factionId);
+    if (!arr) {
+      arr = [];
+      world.settlementsByFaction.set(s.factionId, arr);
+    }
+    arr.push(s);
+  }
+}
+
 export function step(world: World) {
   world.tick++;
+  indexSettlements(world);
   extractionSystem(world);
   metabolismSystem(world);
   movementSystem(world);
@@ -46,7 +70,7 @@ function sampleHistory(world: World) {
     t: world.tick,
     war: world.diplo?.wars?.length > 0,
     f: world.factions.map(f => {
-      const towns = world.settlements.filter(s => s.factionId === f.id);
+      const towns: Settlement[] = world.settlementsByFaction?.get(f.id) || [];
       return {
         pop: Math.round(towns.reduce((a, s) => a + s.population, 0)),
         gold: Math.round(treasuryOf(world, f.id)),
@@ -68,7 +92,7 @@ export function run(world: World, ticks: number) {
 
 export function summarize(world: World) {
   return world.factions.map(f => {
-    const towns = world.settlements.filter(s => s.factionId === f.id);
+    const towns: Settlement[] = world.settlementsByFaction?.get(f.id) || [];
     return {
       faction: f.name,
       settlements: towns.length,

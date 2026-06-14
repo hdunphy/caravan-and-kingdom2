@@ -1,6 +1,7 @@
 // World generation: fBm value-noise island with elevation + moisture layers.
 import { makeRng } from '../core/rng.js';
 import { key, range, distance, hexToPixel, neighbors } from '../core/hex.js';
+import { indexSettlements } from './gameLoop.js';
 import { TERRAIN, FACTIONS, DEFAULT_POLICY, ECON } from '../core/constants.js';
 import { foundSettlement } from './settlement.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../types.js';
@@ -87,8 +88,9 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
 
   // River generation: trace downhill streams from mountains/hills to water.
   const mountainOrHills = [...world.hexes.values()].filter(h => h.terrain === 'MOUNTAINS' || h.terrain === 'HILLS');
+  const scaleFactor = Math.max(1, mapRadius / 24);
   if (mountainOrHills.length > 0) {
-    const numRivers = 2 + Math.floor(rng.next() * 2); // 2 or 3 rivers
+    const numRivers = Math.round((2 + rng.next() * 2) * scaleFactor);
     const sources: Hex[] = [];
     for (let i = 0; i < numRivers; i++) {
       const src = mountainOrHills[Math.floor(rng.next() * mountainOrHills.length)];
@@ -98,7 +100,7 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
     for (const src of sources) {
       let curr = src;
       const visited = new Set([key(curr.q, curr.r)]);
-      for (let step = 0; step < 40; step++) {
+      for (let step = 0; step < Math.round(40 * scaleFactor); step++) {
         let bestNeighbor = null;
         let minElev = Infinity;
         for (const [nq, nr] of neighbors(curr.q, curr.r)) {
@@ -135,13 +137,23 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
   // Faction starts: plains hexes, inland, spread apart, varied surroundings.
   const candidates = [...world.hexes.values()].filter(h =>
     h.terrain === 'PLAINS' && distance(h.q, h.r, 0, 0) <= mapRadius - 4);
-  const starts = [];
+
+  // Shuffle and cap candidates to avoid O(N^2) lockups on giant maps
+  for (let i = candidates.length - 1; i > 0 && candidates.length - i <= 500; i--) {
+    const j = Math.floor(rng.next() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  const sample = candidates.slice(-500);
+  
+  const minStartDist = 9 * scaleFactor * Math.max(0.5, 4 / Math.max(1, world.factions.length));
+
+  const starts: Hex[] = [];
   for (const faction of world.factions) {
     let bestHex = null, bestScore = -Infinity;
-    for (const h of candidates) {
-      const minDist = starts.length === 0 ? 99 :
+    for (const h of sample) {
+      const minDist = starts.length === 0 ? 999 :
         Math.min(...starts.map(s => distance(h.q, h.r, s.q, s.r)));
-      if (starts.length > 0 && minDist < 9) continue;
+      if (starts.length > 0 && minDist < minStartDist) continue;
       let variety = 0, water = 0;
       const seen = new Set();
       for (const [q, r] of range(h.q, h.r, 3)) {
@@ -159,5 +171,6 @@ export function generateWorld(seed: number = 42, mapRadius: number = 24, faction
       foundSettlement(world, faction.id, bestHex.q, bestHex.r, 12);
     }
   }
+  indexSettlements(world);
   return world;
 }

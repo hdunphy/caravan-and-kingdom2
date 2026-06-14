@@ -191,5 +191,7 @@ export interface World {
   pathCache: Map<string, Array<[number, number]> | null>;
   bordersDirty?: boolean;
   playerTargetColony?: { q: number; r: number } | null;
+  settlementById?: Map<number, Settlement>;
+  settlementsByFaction?: Map<number, Settlement[]>;
   [key: string]: any;
 }

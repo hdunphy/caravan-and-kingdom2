@@ -71,7 +71,7 @@ export function deductEmpireStock(world: World, fid: number, cost: Partial<Recor
     let needed = cost[res] || 0;
     if (needed <= 0) continue;
     
-    const setts = world.settlements.filter(s => s.factionId === fid).sort((a, b) => b.stock[res] - a.stock[res]);
+    const setts = [...(world.settlementsByFaction?.get(fid) || [])].sort((a, b) => b.stock[res] - a.stock[res]);
     for (const s of setts) {
       if (needed <= 0) break;
       const take = Math.min(s.stock[res], needed);

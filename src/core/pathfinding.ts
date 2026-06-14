@@ -4,6 +4,26 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 
 type QR = [number, number];
 
+export function invalidatePathsNear(world: World, q: number, r: number) {
+  if (!world.pathCache) return;
+  for (const [key, path] of world.pathCache.entries()) {
+    let keep = true;
+    if (key.includes(`${q},${r}`)) keep = false;
+    else if (path) {
+      for (const [pq, pr] of path) {
+        const dx = pq - q;
+        const dy = pr - r;
+        const dz = -dx - dy;
+        if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) <= 2) {
+          keep = false;
+          break;
+        }
+      }
+    }
+    if (!keep) world.pathCache.delete(key);
+  }
+}
+
 // Returns array of [q,r] from start (exclusive) to goal (inclusive), or null.
 export function findPath(world: World, sq: number, sr: number, gq: number, gr: number, isPlanning = false): QR[] | null {
   const cacheKey = sq + ',' + sr + ':' + gq + ',' + gr + ':' + isPlanning;
@@ -42,6 +62,10 @@ export function findPath(world: World, sq: number, sr: number, gq: number, gr: n
       }
       const resultPath = path.reverse();
       if (world.pathCache) {
+        if (world.pathCache.size >= 5000) {
+          const firstKey = world.pathCache.keys().next().value;
+          if (firstKey) world.pathCache.delete(firstKey);
+        }
         world.pathCache.set(cacheKey, resultPath.map((p): QR => [p[0], p[1]]));
       }
       return resultPath;
@@ -83,6 +107,10 @@ export function findPath(world: World, sq: number, sr: number, gq: number, gr: n
   }
   
   if (world.pathCache) {
+    if (world.pathCache.size >= 5000) {
+      const firstKey = world.pathCache.keys().next().value;
+      if (firstKey) world.pathCache.delete(firstKey);
+    }
     world.pathCache.set(cacheKey, null);
   }
   return null;
