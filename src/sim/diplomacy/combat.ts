@@ -190,7 +190,7 @@ export function combatSystem(world: World) {
           hex.resources[res] -= taken;
           if (home) {
             const deliver = Math.max(1, Math.round(taken * 0.1));
-            home.stock[res] = Math.min(storageCap(home), (home.stock[res] ?? 0) + deliver);
+            home.stock[res] = Math.min(storageCap(world, home), (home.stock[res] ?? 0) + deliver);
           }
           pillagedAny = true;
         }
@@ -236,7 +236,7 @@ export function combatSystem(world: World) {
         const amt = c.cargo[res] || 0;
         if (amt > 0 && home) {
           const deliver = Math.max(1, Math.round(amt * 0.2));
-          home.stock[res] = Math.min(storageCap(home), (home.stock[res] ?? 0) + deliver);
+          home.stock[res] = Math.min(storageCap(world, home), (home.stock[res] ?? 0) + deliver);
         }
       }
       world.agents = world.agents.filter(x => x.id !== c.id);
@@ -389,7 +389,7 @@ function captureSettlement(world: World, s: Settlement, survivors: Agent[]) {
   s.pendingSettler = false;
   for (const a of survivors) {
     a.homeId = s.id; a.state = 'idle'; a.mission = null;
-    deposit(s, a.cargo);
+    deposit(world, s, a.cargo);
     a.cargo = { food: 0, timber: 0, stone: 0, ore: 0 };
   }
   

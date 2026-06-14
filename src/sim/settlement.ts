@@ -2,6 +2,7 @@
 import { key, range } from '../core/hex.js';
 import { TIERS, ROLES, GOALS, ECON, BUILDINGS } from '../core/constants.js';
 import { treasuryOf, spendGold } from './economy.js';
+import { getModifier } from './systems/events.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy, Alert } from '../types.js';
 
 const NAME_PARTS_A = ['Ald', 'Bren', 'Cor', 'Dun', 'Eld', 'Fen', 'Gold', 'Hav', 'Iron', 'Karn', 'Lor', 'Mer', 'Nor', 'Oak', 'Pell', 'Quill', 'Rav', 'Stone', 'Thorn', 'Vale'];
@@ -78,13 +79,16 @@ export function computeRole(world: World, s: Settlement): Role {
   return ROLES.GENERAL;
 }
 
-export function storageCap(s: Settlement): number {
-  let cap = ECON.BASE_STORAGE;
+export function storageCap(world: World, s: Settlement): number {
+  const mod = getModifier(world, s.factionId, 'storage_cap', 1.0);
+  let cap = 500;
+  if (s.tier === 'TOWN') cap = 1500;
+  if (s.tier === 'CITY') cap = 5000;
   for (const b of s.buildings) {
     const bdef = (BUILDINGS as Record<string, any>)[b];
     if (bdef?.capacityBonus) cap += bdef.capacityBonus;
   }
-  return cap;
+  return cap * mod;
 }
 
 export function canAfford(world: World, s: Settlement, cost: Record<string, number>) {
@@ -102,8 +106,8 @@ export function pay(world: World, s: Settlement, cost: Record<string, number>) {
   }
 }
 
-export function deposit(s: Settlement, cargo: Record<string, number>) {
-  const cap = storageCap(s);
+export function deposit(world: World, s: Settlement, cargo: Record<string, number>) {
+  const cap = storageCap(world, s);
   for (const [res, amt] of Object.entries(cargo)) {
     if (amt > 0) s.stock[res] = Math.min(cap, (s.stock[res] ?? 0) + amt);
   }

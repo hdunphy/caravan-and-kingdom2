@@ -134,6 +134,25 @@ export function render(ctx: CanvasRenderingContext2D, world: World, cam: any, se
           ctx.fill();
         }
       }
+    } else if (activeLens === 'colony') {
+      if (hex.owner === null && hex.terrain !== 'WATER' && hex.terrain !== 'MOUNTAINS' && hex.terrain !== 'RIVER') {
+        const tooClose = world.settlements.some(s => {
+          const dx = s.q - hex.q;
+          const dy = s.r - hex.r;
+          const dz = -dx - dy;
+          return Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) < 4;
+        });
+        if (!tooClose) {
+          ctx.fillStyle = 'rgba(52, 152, 219, 0.4)';
+          ctx.fill();
+        }
+      }
+    }
+
+    if (world.playerTargetColony && world.playerTargetColony.q === hex.q && world.playerTargetColony.r === hex.r) {
+      ctx.strokeStyle = '#3498db';
+      ctx.lineWidth = 4;
+      ctx.stroke();
     }
 
     // Selection highlight

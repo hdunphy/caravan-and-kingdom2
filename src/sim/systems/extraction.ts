@@ -1,5 +1,6 @@
 // --- 1. Extraction: resources accumulate ON the hex (GDD 3.2) ---
 import { TERRAIN, ECON, GOALS, BUILDINGS, TIERS, DEFAULT_TRAITS } from '../../core/constants.js';
+import { getModifier } from './events.js';
 import { controlledHexes } from '../settlement.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
 
@@ -19,14 +20,15 @@ export function extractionSystem(world: World) {
     const landHexes = s._landHexes;
     const forageRate = s.goal === GOALS.SURVIVE ? 0.85 : 0.45;
     const foragers = Math.min(s.population, landHexes * ECON.FORAGE_POP_PER_HEX);
-    s.stock.food += foragers * ECON.FOOD_PER_POP * forageRate;
+    const modFood = getModifier(world, s.factionId, 'food_rate', 1.0);
+    s.stock.food += foragers * ECON.FOOD_PER_POP * forageRate * modFood;
     for (const hex of hexes) {
       const t = TERRAIN[hex.terrain];
       if (hex.terrain === 'WATER') {
         // Fishing Dock on water: food goes straight into settlement stock
         //TODO does this need to be FISHING DOCK or FISHERY?
         if (hex.building === 'FISHERY') {
-          s.stock.food += 1.2 * workEfficiency * (hex.buildingIntegrity / 100);
+          s.stock.food += 1.2 * workEfficiency * (hex.buildingIntegrity / 100) * modFood;
         }
         continue;
       }

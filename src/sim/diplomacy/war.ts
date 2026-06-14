@@ -187,11 +187,13 @@ export function warCouncil(world: World, war: War, side: number) {
   const currentArmy = mySoldiers.length;
 
   // 1. Staging/Muster Town
-  let goal = world.settlements.find(s => s.id === war.goalId);
+  const goalKey = side === war.a ? 'goal_a' : 'goal_b';
+  let goalId = war[goalKey];
+  let goal = world.settlements.find(s => s.id === goalId);
   if (!goal || goal.factionId === side) {
     goal = pickWarGoal(world, side, enemy) ?? undefined;
     if (goal) {
-      war.goalId = goal.id;
+      war[goalKey] = goal.id;
     }
   }
 
@@ -455,5 +457,10 @@ export function warCouncil(world: World, war: War, side: number) {
       cancelMission(world, s);
     }
   }
+}
+
+export function setWarGoal(world: World, factionId: number, war: War, targetId: number) {
+  if (factionId === war.a) war.goal_a = targetId;
+  else if (factionId === war.b) war.goal_b = targetId;
 }
 

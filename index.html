@@ -306,6 +306,7 @@
     <button class="lens-btn" data-lens="owner" style="padding: 4px 8px; font-size: 10px;">Territory</button>
     <button class="lens-btn" data-lens="danger" style="padding: 4px 8px; font-size: 10px;">Danger</button>
     <button class="lens-btn" data-lens="wealth" style="padding: 4px 8px; font-size: 10px;">Wealth</button>
+    <button class="lens-btn" data-lens="colony" style="padding: 4px 8px; font-size: 10px; color:#3498db; border-color:rgba(52,152,219,0.5)">Colony Target</button>
   </div>
 
   <div id="settlement-card" style="display: none; position: absolute; z-index: 20; pointer-events: auto; background: rgba(20, 27, 43, 0.95); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 12px; font-size: 11px; width: 240px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); transform: translate(-50%, -100%); margin-top: -15px;"></div>
@@ -449,6 +450,11 @@
             <button id="preset-merchant" style="font-size:9px; padding:4px 6px;">Merchant</button>
             <button id="preset-reset" style="font-size:9px; padding:4px 6px; background:rgba(231,76,60,0.2); border-color:#e74c3c;">Reset</button>
           </div>
+        </div>
+        <hr>
+        <h2>Royal Projects</h2>
+        <div id="projects-panel" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
+          <!-- Populated by JS -->
         </div>
       </div>
     </div>

@@ -103,7 +103,7 @@ export function civilGovernor(world: World, s: Settlement) {
   }
 
   // Warehouse when storage is tight
-  const cap = storageCap(s);
+  const cap = storageCap(world, s);
   const totalStock = s.stock.food + s.stock.timber + s.stock.stone + s.stock.ore;
   const warehouses = s.buildings.filter(b => b === 'WAREHOUSE').length;
   if (warehouses < 3 && totalStock > cap * 0.8 && canAfford(world, s, BUILDINGS.WAREHOUSE.cost)) {
@@ -316,6 +316,14 @@ function paveRoads(world: World, s: Settlement) {
 
 
 export function findColonySite(world: World, s: Settlement) {
+  if (s.factionId === world.playerFactionId && world.playerTargetColony) {
+    const { q, r } = world.playerTargetColony;
+    const hex = world.hexes.get(key(q, r));
+    if (hex && hex.owner === null && hex.terrain !== 'WATER' && hex.terrain !== 'MOUNTAINS' && hex.terrain !== 'RIVER') {
+      return { q, r };
+    }
+  }
+
   let best = null, bestScore = -Infinity;
   for (const [q, r] of range(s.q, s.r, ECON.EXPAND_SEARCH_RADIUS)) {
     const hex = world.hexes.get(key(q, r));

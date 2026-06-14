@@ -1,6 +1,7 @@
 // --- 2. Metabolism: population eats, grows, declines (GDD 3.1) ---
-import { ECON, TIERS, DIPLO } from '../../core/constants.js';
-import { log, pushAlert } from '../settlement.js';
+import { BUILDINGS, ECON, TIERS, DIPLO } from '../../core/constants.js';
+import { getModifier } from './events.js';
+import { log, pushAlert, storageCap } from '../settlement.js';
 import { policyOf } from '../policy.js';
 import { treasuryOf, addGold } from '../economy.js';
 import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Mission, Diplo, Role, Goal, Tier, AgentKind, MilitaryStance, TerrainKind, Policy } from '../../types.js';
@@ -42,6 +43,23 @@ export function metabolismSystem(world: World) {
       
       const t = treasuryOf(world, s.factionId);
       const debt = Math.max(0, -t);
+      const smithy = s.buildings.includes('SMITHY');
+      if (smithy) {
+        const maxTools = Math.max(0, s.population * 2 - s.tools);
+        if (maxTools > 0 && s.stock.ore >= ECON.TOOL_COST.ore && s.stock.timber >= ECON.TOOL_COST.timber) {
+          const modTools = getModifier(world, s.factionId, 'tool_production', 1.0);
+          const possible = Math.min(
+            maxTools,
+            Math.floor(s.stock.ore / ECON.TOOL_COST.ore),
+            Math.floor(s.stock.timber / ECON.TOOL_COST.timber),
+            Math.floor(5 * modTools)
+          );
+          s.tools += possible;
+          s.stock.ore -= possible * ECON.TOOL_COST.ore;
+          s.stock.timber -= possible * ECON.TOOL_COST.timber;
+        }
+      }
+
       if (debt >= ECON.DEBT_DEATH) {
         const decayRate = ECON.DEBT_DECAY_BASE * (debt / ECON.DEBT_DEATH);
         s.population = Math.max(0.5, s.population - decayRate);
@@ -65,8 +83,8 @@ export function metabolismSystem(world: World) {
         } else if (debt >= ECON.DEBT_DEATH) {
           debtFactor = 0;
         }
-
-        s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty * debtFactor;
+        const modPop = getModifier(world, s.factionId, 'pop_growth', 1.0);
+        s.population += (ECON.POP_GROWTH_RATE + ECON.POP_GROWTH_RATE * s.population * 0.1) * fertility * growthPenalty * debtFactor * modPop;
       }
     } else {
       const foodDays = Math.max(0, s.stock.food) / Math.max(0.05, need);
