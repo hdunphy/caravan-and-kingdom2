@@ -26,7 +26,9 @@ resize();
 
 const params = new URLSearchParams(location.search);
 const seed = parseInt(params.get('seed') ?? '42', 10);
-let world = generateWorld(seed, 24, 4);
+const mapRadius = parseInt(params.get('radius') ?? '24', 10);
+const factionCount = parseInt(params.get('factions') ?? '4', 10);
+let world = generateWorld(seed, mapRadius, factionCount);
 
 // Auto-offer autosave on boot
 const autosave = localStorage.getItem('cnk_autosave');
@@ -71,7 +73,7 @@ const select = document.getElementById('playstyle-select');
 if (select) {
   select.addEventListener('change', e => {
     selectedPlaystyle = (e.target as HTMLSelectElement).value;
-    world = generateWorld(world.seed, 24, 4);
+    world = generateWorld(world.seed, mapRadius, factionCount);
     applyPlaystyle(world);
     selected = null;
     updateHud(world, selected);
@@ -176,7 +178,7 @@ for (const btn of document.querySelectorAll<HTMLElement>('[data-speed]')) {
   });
 }
 document.getElementById('reseed')!.addEventListener('click', () => {
-  world = generateWorld(Math.floor(Math.random() * 1e9), 24, 4);
+  world = generateWorld(Math.floor(Math.random() * 1e9), mapRadius, factionCount);
   applyPlaystyle(world);
   selected = null;
   gameOverTriggered = false;
@@ -521,6 +523,10 @@ const BASE_TPS = 8;
 let last = performance.now();
 let acc = 0;
 let hudTimer = 0;
+
+const profilerActive = params.get('debug') === '1';
+let profTicks = 0, profSimMs = 0, profRenderMs = 0;
+
 function frame(now: number) {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
@@ -528,17 +534,35 @@ function frame(now: number) {
   let n = Math.floor(acc);
   if (n > 200) { n = 200; acc = 0; } else acc -= n;
   const budget = performance.now() + 25; // ms per frame for sim stepping
+  
+  const t0 = performance.now();
+  let ticksRun = 0;
   while (n-- > 0) {
     step(world);
+    ticksRun++;
     checkCriticalAlerts(world);
     if (speed === 0) break; // Pause immediately
     if (performance.now() > budget) { acc = 0; break; } // keep UI responsive
   }
+  const t1 = performance.now();
   
   // Update the settlement card position live
   updateSettlementCard(world, selected, cam);
   checkWinLoss(world);
   render(ctx, world, cam, selected);
+  const t2 = performance.now();
+
+  if (profilerActive) {
+    profTicks += ticksRun;
+    profSimMs += (t1 - t0);
+    profRenderMs += (t2 - t1);
+    if (profTicks >= 60 || profRenderMs >= 1000) {
+      const avgSim = profTicks > 0 ? (profSimMs / profTicks).toFixed(2) : '0.00';
+      console.log(`[Profiler] avg sim: ${avgSim}ms/tick | frame render: ${t2-t1}ms | hexes: ${world.hexes.size} | agents: ${world.agents.length}`);
+      profTicks = 0; profSimMs = 0; profRenderMs = 0;
+    }
+  }
+
   if (++hudTimer % 10 === 0 || speed === 0) updateHud(world, selected);
   requestAnimationFrame(frame);
 }
