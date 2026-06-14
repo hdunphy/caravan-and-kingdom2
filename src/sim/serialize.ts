@@ -18,6 +18,8 @@ export function saveWorld(world: World): string {
   // Drop non-serializable or unnecessary fields
   delete (data as any).rng;
   delete (data as any).pathCache;
+  delete (data as any).settlementById;
+  delete (data as any).settlementsByFaction;
 
   return JSON.stringify(data);
 }

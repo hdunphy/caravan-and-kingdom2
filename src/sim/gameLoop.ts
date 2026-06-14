@@ -11,8 +11,10 @@ import type { World, Settlement, Agent, Hex, Faction, War, Stock, Resource, Miss
 const AI_INTERVAL = 10; // governors deliberate every N ticks
 
 export function indexSettlements(world: World) {
-  if (!world.settlementById) world.settlementById = new Map();
-  if (!world.settlementsByFaction) world.settlementsByFaction = new Map();
+  if (!world.settlementById || !(world.settlementById instanceof Map)) {
+    world.settlementById = new Map();
+    world.settlementsByFaction = new Map();
+  }
   
   world.settlementById.clear();
   world.settlementsByFaction.clear();

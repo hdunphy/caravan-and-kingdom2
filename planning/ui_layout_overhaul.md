@@ -110,6 +110,26 @@ The current pairwise `a–b` rows get buried and don't scale. Replace with an **
 - Whenever your faction is in an active war, a **war panel is always visible** (docked above the map or in the banner), independent of which tab you're on. Per active war show: enemy (color), **your exhaustion vs theirs** as bars, the current **war objective** (the targeted town from WP6 C2), and **Sue-for-Peace**. It vanishes at peace.
 - This replaces hunting for the war info inside the Kingdoms tab.
 
+### 9. Player targeting controls — colony site & war objective
+
+Both shipped in WP6 but are unintuitive, and the war one doesn't actually steer the army. The redesign must fix the wiring and surface them clearly.
+
+**⚠ Bug to fix first (war objective doesn't work):** the enemy-card button writes `war.goal_a` / `war.goal_b` (handler in `main.ts`, markup in `card.ts`), but the war AI (`warCouncil`) reads `war.goalId`. So clicking "Set War Objective" flips the button label but **never redirects the siege** — the two fields are disconnected. Fix: make `warCouncil(world, war, side)` consume the **per-side** objective — for `side`, use `side === war.a ? war.goal_a : war.goal_b` as the siege goal when set, falling back to `pickWarGoal`. Per WP6 C2b a player objective **overrides the `STRIKE_RANGE` filter** (you can target a deep town). Also: reference the war by faction **pair**, not array index — `data-waridx` / `wars.indexOf(war)` goes stale when the wars array changes; look the war up by (player, enemy) on click.
+
+**Set War Objective — two entry points, one action:**
+- On the **persistent war panel** (§8): each active war shows `Objective: <town> ▸` with a control to change it (choose from that enemy's towns, or "click a town on the map"). This is the primary, always-visible entry point — the user expects it here.
+- On the **enemy settlement card** (§3): keep the "Set as war objective" button (only shown when at war with that faction), writing the same per-side objective; show a "Current objective" state when it already is the target.
+- Re-targetable anytime; when the objective falls, the war panel prompts for the next (WP6 C2a/C2c). Mark the current objective on the map.
+
+**Set Colony Target — make it a real button, not a hidden lens:**
+- Today it only works if you find the "Colony Target" **map lens** and then click a hex — undiscoverable. Replace with an explicit **"Choose next colony site" button in the Realm tab** (Crown is the alternative; Realm is recommended since it's about settlements).
+- Clicking it enters a **site-picking mode**: turn on the valid-site overlay (reuse `findColonySite`'s rules — unowned, not Water/Mountain/River, ≥`EXPAND_MIN_DIST` from any settlement; the existing colony lens already renders this) plus a hint ("click a highlighted hex"). A valid hex sets `world.playerTargetColony`; an invalid one is rejected with feedback.
+- Show the active target plainly — "Next colony → (q,r) ✕" with a clear button, in the Realm tab and as the existing map marker.
+- Behaviour per WP6 C1: a single global marker, may sit **outside** the normal search radius, and if the hex is occupied by dispatch time → **alert + fall back to auto** and clear the marker.
+- In Svelte this is a small component with a "picking" state the canvas click handler consults (as the lens does now), rather than a separate hidden mode.
+
+Both remain recorded player inputs (`playerTargetColony`, `war.goal_a/_b`) → deterministic; the only sim-logic change is making `warCouncil` actually read the per-side objective.
+
 ---
 
 ## Additional QoL suggestions
